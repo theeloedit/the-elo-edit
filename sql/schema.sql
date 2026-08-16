@@ -19,6 +19,7 @@ create table if not exists listings (
   category text,            -- e.g. 'Dress', 'Bag', 'Shoes', 'Top'
   tags text[] not null default '{}', -- admin-only, set from a fixed list in admin.html (Bridal, Wedding Guest, Vacation, Accessories, Ready to Wear)
   go_live_at timestamptz,   -- when a 'live' item actually becomes visible to buyers; null/past = visible now
+  dm_sent boolean not null default false, -- admin-only checkbox: have you sent the seller their "you're in the drop" DM?
   photo_urls text[] not null default '{}',
 
   -- curation state, controlled by Mary only
@@ -30,6 +31,7 @@ create table if not exists listings (
 alter table listings add column if not exists original_price numeric(10,2);
 alter table listings add column if not exists tags text[] not null default '{}';
 alter table listings add column if not exists go_live_at timestamptz;
+alter table listings add column if not exists dm_sent boolean not null default false;
 
 create index if not exists listings_status_idx on listings (status);
 
@@ -113,7 +115,22 @@ create policy "admin can delete listing photos"
   to authenticated
   using (bucket_id = 'listing-photos');
 
--- 4. Create Mary's admin login
+-- 4. Let a seller mark their own item sold via a private link (see sold.html),
+-- without giving anonymous visitors general update access to the table.
+-- Only flips a 'live' item to 'sold' — nothing else is editable this way,
+-- and it only works if you know the item's exact id (from its private link).
+create or replace function mark_listing_sold(listing_id uuid)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update listings set status = 'sold' where id = listing_id and status = 'live';
+$$;
+
+grant execute on function mark_listing_sold(uuid) to anon;
+
+-- 5. Create Mary's admin login
 -- Do this in the Supabase dashboard instead of SQL:
 -- Authentication → Users → Add user → enter Mary's email + a password.
 -- That's the only account that should exist — anyone who logs in via

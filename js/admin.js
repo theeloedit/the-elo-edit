@@ -129,6 +129,25 @@
           approveWithSchedule(item.id, goLiveAt);
         });
       }
+
+      const copyBtn = card.querySelector("[data-copy-dm]");
+      if (copyBtn) {
+        copyBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(dmMessageFor(item));
+            const original = copyBtn.textContent;
+            copyBtn.textContent = "Copied!";
+            setTimeout(() => { copyBtn.textContent = original; }, 1500);
+          } catch (e) {
+            alert(dmMessageFor(item));
+          }
+        });
+      }
+
+      const dmToggleBtn = card.querySelector("[data-dm-toggle]");
+      if (dmToggleBtn) {
+        dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
+      }
     });
   }
 
@@ -163,6 +182,25 @@
   function tagChipsHtml(item) {
     const tags = item.tags || [];
     return `<div class="tag-chips">${TAG_OPTIONS.map((t) => `<button type="button" class="tag-chip ${tags.includes(t) ? "active" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}</div>`;
+  }
+
+  function soldLink(item) {
+    return `${window.location.origin}/sold.html?id=${item.id}`;
+  }
+
+  function dmMessageFor(item) {
+    const when = item.go_live_at ? formatGoLive(item.go_live_at) : "our next drop";
+    return `Hey! Your ${item.brand}${item.item_name ? " " + item.item_name : ""} was chosen for our next drop — going live ${when}. Look out for DMs! Once it sells, you can mark it sold yourself here: ${soldLink(item)}`;
+  }
+
+  function copyDmHtml(item) {
+    if (item.status !== "live") return "";
+    return `<button type="button" class="chip-btn" data-copy-dm="1" style="background:var(--ink); color:#fff;">Copy DM message</button>`;
+  }
+
+  function dmToggleHtml(item) {
+    if (item.status !== "live") return "";
+    return `<button type="button" class="tag-chip dm-toggle ${item.dm_sent ? "active" : ""}" data-dm-toggle="1">${item.dm_sent ? "✓ DM'ed" : "Mark as DM'ed"}</button>`;
   }
 
   function liveStatusBadgeHtml(item) {
@@ -200,7 +238,7 @@
           ${tagChipsHtml(item)}
           ${liveStatusBadgeHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}</div>
+          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}</div>
         </div>
       </div>`;
   }
@@ -263,6 +301,25 @@
       item.status = "live";
       item.go_live_at = goLiveAtISO;
     }
+    renderList();
+  }
+
+  async function toggleDmSent(id) {
+    const item = allListings.find((l) => l.id === id);
+    if (!item) return;
+    const nextValue = !item.dm_sent;
+
+    const { error } = await supabaseClient
+      .from("listings")
+      .update({ dm_sent: nextValue })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    item.dm_sent = nextValue;
     renderList();
   }
 

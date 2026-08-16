@@ -50,10 +50,10 @@ button {
   position: absolute;
   top: 0; left: 0; right: 0;
   z-index: 20;
-  padding: 14px 16px 8px;
+  padding: 16px 16px 8px;
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: center;
   color: #fff;
   text-shadow: 0 1px 4px rgba(0,0,0,0.5);
   pointer-events: none;
@@ -61,14 +61,16 @@ button {
 
 .brand-bar .brand-name {
   font-weight: 600;
-  letter-spacing: 0.02em;
-  font-size: 1rem;
+  letter-spacing: 0.04em;
+  font-size: 1.05rem;
 }
 
 .brand-bar .shop-link {
+  position: absolute;
+  right: 16px;
   pointer-events: auto;
   color: #fff;
-  font-size: 0.8rem;
+  font-size: 0.78rem;
   text-decoration: underline;
 }
 
@@ -522,6 +524,12 @@ button {
 .tag-chip.active {
   background: var(--ink);
   border-color: var(--ink);
+  color: #fff;
+}
+
+.dm-toggle.active {
+  background: var(--success);
+  border-color: var(--success);
   color: #fff;
 }
 
