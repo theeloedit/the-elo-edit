@@ -151,9 +151,196 @@
         dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
       }
 
+      const editToggleBtn = card.querySelector("[data-edit-toggle]");
+      const editBlock = document.getElementById(`edit-${item.id}`);
+      if (editToggleBtn && editBlock) {
+        editToggleBtn.addEventListener("click", () => {
+          editBlock.style.display = editBlock.style.display === "none" ? "block" : "none";
+        });
+      }
+      const cancelEditBtn = card.querySelector("[data-cancel-edit]");
+      if (cancelEditBtn && editBlock) {
+        cancelEditBtn.addEventListener("click", () => { editBlock.style.display = "none"; });
+      }
+      const saveEditBtn = card.querySelector("[data-save-edit]");
+      if (saveEditBtn) {
+        saveEditBtn.addEventListener("click", () => saveListingDetails(item.id));
+      }
+
       renderAdminPhotos(item.id);
     });
   }
+
+  // ---------- edit listing details ----------
+
+  function editBlockHtml(item) {
+    return `
+      <div class="edit-block" id="edit-${item.id}" style="display:none; margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
+        <div class="field">
+          <label>Brand</label>
+          <input type="text" class="ed-brand" value="${escapeHtml(item.brand)}" />
+        </div>
+        <div class="field">
+          <label>Item name</label>
+          <input type="text" class="ed-item-name" value="${escapeHtml(item.item_name || "")}" />
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>Size</label>
+            <input type="text" class="ed-size" value="${escapeHtml(item.size || "")}" />
+          </div>
+          <div class="field">
+            <label>Sell price ($)</label>
+            <input type="number" class="ed-price" value="${item.price}" />
+          </div>
+        </div>
+        <div class="two-col">
+          <div class="field">
+            <label>What was paid ($)</label>
+            <input type="number" class="ed-original-price" value="${item.original_price != null ? item.original_price : ""}" />
+          </div>
+          <div class="field">
+            <label>Condition</label>
+            <input type="text" class="ed-condition" value="${escapeHtml(item.condition || "")}" />
+          </div>
+        </div>
+        <div class="field">
+          <label>Category</label>
+          <input type="text" class="ed-category" value="${escapeHtml(item.category || "")}" />
+        </div>
+        <div class="field">
+          <label>Description</label>
+          <textarea class="ed-description">${escapeHtml(item.description || "")}</textarea>
+        </div>
+        <div class="field">
+          <label>Seller's Instagram handle</label>
+          <input type="text" class="ed-seller" value="${escapeHtml(item.seller_ig_handle)}" />
+        </div>
+        <div class="actions">
+          <button type="button" class="chip-btn approve" data-save-edit="1">Save changes</button>
+          <button type="button" class="chip-btn" data-cancel-edit="1">Cancel</button>
+        </div>
+      </div>`;
+  }
+
+  async function saveListingDetails(id) {
+    const card = document.querySelector(`[data-id="${id}"]`);
+    if (!card) return;
+
+    const price = card.querySelector(".ed-price").value;
+    const originalPrice = card.querySelector(".ed-original-price").value;
+    const brand = card.querySelector(".ed-brand").value.trim();
+    const size = card.querySelector(".ed-size").value.trim();
+    const seller = card.querySelector(".ed-seller").value.trim().replace(/^@/, "");
+
+    if (!brand || !size || !price || !seller) {
+      alert("Brand, size, price, and seller handle can't be empty.");
+      return;
+    }
+
+    const updates = {
+      brand,
+      item_name: card.querySelector(".ed-item-name").value.trim() || null,
+      size,
+      price: Number(price),
+      original_price: originalPrice ? Number(originalPrice) : null,
+      condition: card.querySelector(".ed-condition").value.trim() || null,
+      category: card.querySelector(".ed-category").value.trim() || null,
+      description: card.querySelector(".ed-description").value.trim() || null,
+      seller_ig_handle: seller,
+    };
+
+    const { error } = await supabaseClient.from("listings").update(updates).eq("id", id);
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const item = allListings.find((l) => l.id === id);
+    if (item) Object.assign(item, updates);
+    renderList();
+  }
+
+  // ---------- manual "add a listing" panel ----------
+
+  const addListingToggle = document.getElementById("addListingToggle");
+  const addListingPanel = document.getElementById("addListingPanel");
+  const addListingSubmit = document.getElementById("addListingSubmit");
+  const addListingStatus = document.getElementById("addListingStatus");
+
+  addListingToggle.addEventListener("click", () => {
+    const showing = addListingPanel.style.display !== "none";
+    addListingPanel.style.display = showing ? "none" : "block";
+    addListingToggle.textContent = showing ? "+ Add a listing manually" : "− Hide add listing form";
+  });
+
+  addListingSubmit.addEventListener("click", async () => {
+    addListingStatus.className = "status-msg";
+
+    const photoFiles = document.getElementById("alPhotos").files;
+    const brand = document.getElementById("alBrand").value.trim();
+    const itemName = document.getElementById("alItemName").value.trim();
+    const size = document.getElementById("alSize").value.trim();
+    const price = document.getElementById("alPrice").value;
+    const originalPrice = document.getElementById("alOriginalPrice").value;
+    const condition = document.getElementById("alCondition").value;
+    const category = document.getElementById("alCategory").value;
+    const description = document.getElementById("alDescription").value.trim();
+    const seller = document.getElementById("alSeller").value.trim().replace(/^@/, "");
+
+    if (!brand || !size || !price || !seller || photoFiles.length === 0) {
+      addListingStatus.textContent = "Please fill in photos, brand, size, price, and seller handle — those are required.";
+      addListingStatus.className = "status-msg show error";
+      return;
+    }
+
+    addListingSubmit.disabled = true;
+    addListingSubmit.textContent = "Adding…";
+
+    try {
+      const photo_urls = [];
+      for (const file of photoFiles) {
+        const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+        const path = `${crypto.randomUUID()}.${ext}`;
+        const { error } = await supabaseClient.storage
+          .from("listing-photos")
+          .upload(path, file, { cacheControl: "3600", upsert: false });
+        if (error) throw error;
+        const { data } = supabaseClient.storage.from("listing-photos").getPublicUrl(path);
+        photo_urls.push(data.publicUrl);
+      }
+
+      const { error: insertError } = await supabaseClient.from("listings").insert({
+        brand,
+        item_name: itemName || null,
+        size,
+        price: Number(price),
+        original_price: originalPrice ? Number(originalPrice) : null,
+        condition: condition || null,
+        category: category || null,
+        description: description || null,
+        seller_ig_handle: seller,
+        photo_urls,
+        status: "pending",
+      });
+      if (insertError) throw insertError;
+
+      addListingStatus.textContent = "Added — check the Pending tab below.";
+      addListingStatus.className = "status-msg show success";
+
+      ["alBrand","alItemName","alSize","alPrice","alOriginalPrice","alCondition","alCategory","alDescription","alSeller"]
+        .forEach((id) => { document.getElementById(id).value = ""; });
+      document.getElementById("alPhotos").value = "";
+
+      await loadListings();
+    } catch (err) {
+      addListingStatus.textContent = err.message || "Something went wrong.";
+      addListingStatus.className = "status-msg show error";
+    } finally {
+      addListingSubmit.disabled = false;
+      addListingSubmit.textContent = "Add to Pending";
+    }
+  });
 
   // ---------- photo management ----------
 
@@ -342,7 +529,8 @@
           ${tagChipsHtml(item)}
           ${liveStatusBadgeHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}</div>
+          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
+          ${editBlockHtml(item)}
         </div>
       </div>`;
   }
