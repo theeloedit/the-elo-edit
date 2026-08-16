@@ -29,9 +29,9 @@
         const photos = (item.photo_urls && item.photo_urls.length ? item.photo_urls : [""]);
         const photoIdx = i === current ? Math.min(currentPhoto, photos.length - 1) : 0;
         const photo = photos[photoIdx];
-        const meta = [item.size, item.condition, item.category, ...(item.tags || [])].filter(Boolean);
+        const meta = [item.size, item.condition, item.category].filter(Boolean);
         const dots = photos.length > 1
-          ? `<div class="photo-dots">${photos.map((_, p) => `<div class="dot ${p === photoIdx ? "active" : ""}"></div>`).join("")}</div>`
+          ? `<div class="photo-dots">${photos.map((_, p) => `<div class="dot ${p === photoIdx ? "active" : ""}" data-photo-idx="${p}"></div>`).join("")}</div>`
           : "";
         return `
         <div class="story-card ${i === current ? "active" : ""}" data-index="${i}">
@@ -58,7 +58,14 @@
 
     document.getElementById("tapLeft").addEventListener("click", () => go(-1));
     document.getElementById("tapRight").addEventListener("click", () => go(1));
-    attachSwipe(document.getElementById("app"));
+
+    app.querySelectorAll(".dot[data-photo-idx]").forEach((dot) => {
+      dot.addEventListener("click", (e) => {
+        e.stopPropagation();
+        currentPhoto = Number(dot.dataset.photoIdx);
+        render();
+      });
+    });
   }
 
   function escapeHtml(str) {
@@ -95,10 +102,13 @@
       if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
         go(dx < 0 ? 1 : -1);
       } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
-        // swipe down = next photo, swipe up = previous photo
         cyclePhoto(dy > 0 ? 1 : -1);
       }
     }, { passive: true });
+  }
+
+  function getRequestedItemId() {
+    return new URLSearchParams(window.location.search).get("item");
   }
 
   async function load() {
@@ -114,8 +124,16 @@
     }
 
     listings = data || [];
+
+    const requestedId = getRequestedItemId();
+    if (requestedId) {
+      const idx = listings.findIndex((l) => l.id === requestedId);
+      if (idx !== -1) current = idx;
+    }
+
     render();
   }
 
+  attachSwipe(app);
   load();
 })();

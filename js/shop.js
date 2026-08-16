@@ -16,15 +16,10 @@
     }[c]));
   }
 
-  function igDmUrl(handle) {
-    const clean = (handle || "").trim().replace(/^@/, "");
-    return `https://ig.me/m/${encodeURIComponent(clean)}`;
-  }
-
   function cardHtml(item) {
     const photo = (item.photo_urls && item.photo_urls[0]) || "";
     return `
-      <a class="shop-card" href="${igDmUrl(item.seller_ig_handle)}" target="_blank" rel="noopener">
+      <a class="shop-card" href="index.html?item=${item.id}">
         <div class="shop-card-photo" style="background-image:url('${photo}')"></div>
         <div class="shop-card-body">
           <p class="shop-card-brand">${escapeHtml(item.brand)}</p>
