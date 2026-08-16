@@ -50,7 +50,11 @@
 
     app.innerHTML = `
       <div class="progress-track">${segs}</div>
-      <div class="brand-bar"><span class="brand-name">The Elo Edit</span><a class="shop-link" href="shop.html">Shop all</a></div>
+      <div class="brand-bar">
+        <a class="nav-link nav-left" href="submit.html">Sell</a>
+        <span class="brand-name">The Elo Edit</span>
+        <a class="nav-link nav-right" href="shop.html">Shop all</a>
+      </div>
       <div class="card-stack">${cards}</div>
       <div class="tap-zone left" id="tapLeft"></div>
       <div class="tap-zone right" id="tapRight"></div>

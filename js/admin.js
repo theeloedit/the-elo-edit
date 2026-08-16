@@ -9,6 +9,7 @@
   const tabs = document.querySelectorAll(".tab-btn");
 
   let activeTab = "pending";
+  let dmFilter = "all";
   let allListings = [];
   const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
 
@@ -89,14 +90,30 @@
   }
 
   function renderList() {
-    const items = allListings.filter((l) => l.status === activeTab);
-
-    if (items.length === 0) {
-      listEl.innerHTML = `<div class="empty-list">Nothing here yet.</div>`;
-      return;
+    let items = allListings.filter((l) => l.status === activeTab);
+    if (activeTab === "live" && dmFilter !== "all") {
+      items = items.filter((l) => (dmFilter === "dmed" ? l.dm_sent : !l.dm_sent));
     }
 
-    listEl.innerHTML = items.map(cardHtml).join("");
+    const dmFilterHtml = activeTab === "live" ? `
+      <div class="dm-filter-bar">
+        <button type="button" class="filter-chip ${dmFilter === "all" ? "active" : ""}" data-dm-filter="all">All</button>
+        <button type="button" class="filter-chip ${dmFilter === "dmed" ? "active" : ""}" data-dm-filter="dmed">DM'ed</button>
+        <button type="button" class="filter-chip ${dmFilter === "not-dmed" ? "active" : ""}" data-dm-filter="not-dmed">Not DM'ed</button>
+      </div>` : "";
+
+    if (items.length === 0) {
+      listEl.innerHTML = dmFilterHtml + `<div class="empty-list">Nothing here yet.</div>`;
+    } else {
+      listEl.innerHTML = dmFilterHtml + items.map(cardHtml).join("");
+    }
+
+    listEl.querySelectorAll("[data-dm-filter]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        dmFilter = btn.dataset.dmFilter;
+        renderList();
+      });
+    });
 
     items.forEach((item) => {
       const card = document.querySelector(`[data-id="${item.id}"]`);
