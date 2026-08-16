@@ -114,7 +114,7 @@
         <img src="${photo}" alt="" />
         <div class="details">
           <h3>${escapeHtml(item.brand)} ${item.item_name ? "— " + escapeHtml(item.item_name) : ""}</h3>
-          <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}</p>
+          <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid $${Number(item.original_price).toFixed(0)})</span>` : ""}</p>
           <p>@${escapeHtml(item.seller_ig_handle)}</p>
           <p>${escapeHtml(item.condition || "")} ${item.category ? "· " + escapeHtml(item.category) : ""}</p>
           <div class="actions">${actions}</div>

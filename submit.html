@@ -31,14 +31,19 @@
       <input type="text" id="itemName" placeholder="e.g. Juliette Midi Dress" />
     </div>
 
+    <div class="field">
+      <label for="size">Size*</label>
+      <input type="text" id="size" placeholder="e.g. 4 / S" required />
+    </div>
+
     <div class="two-col">
       <div class="field">
-        <label for="size">Size*</label>
-        <input type="text" id="size" placeholder="e.g. 4 / S" required />
+        <label for="price">Sell price ($)*</label>
+        <input type="number" id="price" min="0" step="1" placeholder="120" required />
       </div>
       <div class="field">
-        <label for="price">Price ($)*</label>
-        <input type="number" id="price" min="0" step="1" placeholder="120" required />
+        <label for="originalPrice">What you paid ($)</label>
+        <input type="number" id="originalPrice" min="0" step="1" placeholder="240" />
       </div>
     </div>
 
@@ -72,6 +77,7 @@
     <div class="field">
       <label for="description">Description</label>
       <textarea id="description" placeholder="Fit notes, fabric, why you're letting it go…"></textarea>
+      <p class="hint">Any additional details you want to add</p>
     </div>
 
     <div class="field">

@@ -40,6 +40,9 @@
         item_name: document.getElementById("itemName").value.trim() || null,
         size: document.getElementById("size").value.trim(),
         price: Number(document.getElementById("price").value),
+        original_price: document.getElementById("originalPrice").value
+          ? Number(document.getElementById("originalPrice").value)
+          : null,
         condition: document.getElementById("condition").value || null,
         category: document.getElementById("category").value || null,
         description: document.getElementById("description").value.trim() || null,
