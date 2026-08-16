@@ -31,6 +31,74 @@
     <p class="subtitle">Approve submissions, mark items sold.</p>
   </header>
 
+  <button type="button" class="submit-btn" id="addListingToggle" style="margin-bottom:20px;">+ Add a listing manually</button>
+
+  <div id="addListingPanel" style="display:none; margin-bottom:24px; background:#fff; border:1px solid var(--line); border-radius:14px; padding:16px;">
+    <div class="field">
+      <label for="alPhotos">Photos*</label>
+      <input type="file" id="alPhotos" accept="image/*" multiple />
+      <p class="hint">Add up to a few photos. First one is the main photo (you can reorder later from the item's card).</p>
+    </div>
+    <div class="field">
+      <label for="alBrand">Brand*</label>
+      <input type="text" id="alBrand" placeholder="e.g. Reformation" />
+    </div>
+    <div class="field">
+      <label for="alItemName">Item name</label>
+      <input type="text" id="alItemName" placeholder="e.g. Juliette Midi Dress" />
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label for="alSize">Size*</label>
+        <input type="text" id="alSize" placeholder="e.g. 4 / S" />
+      </div>
+      <div class="field">
+        <label for="alPrice">Sell price ($)*</label>
+        <input type="number" id="alPrice" min="0" step="1" placeholder="120" />
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="field">
+        <label for="alOriginalPrice">What was paid ($)</label>
+        <input type="number" id="alOriginalPrice" min="0" step="1" placeholder="240" />
+      </div>
+      <div class="field">
+        <label for="alCondition">Condition</label>
+        <select id="alCondition">
+          <option value="">Select…</option>
+          <option>New with tags</option>
+          <option>Like new</option>
+          <option>Gently worn</option>
+          <option>Well loved</option>
+        </select>
+      </div>
+    </div>
+    <div class="field">
+      <label for="alCategory">Category</label>
+      <select id="alCategory">
+        <option value="">Select…</option>
+        <option>Dress</option>
+        <option>Top</option>
+        <option>Bottoms</option>
+        <option>Outerwear</option>
+        <option>Bag</option>
+        <option>Shoes</option>
+        <option>Accessory</option>
+        <option>Other</option>
+      </select>
+    </div>
+    <div class="field">
+      <label for="alDescription">Description</label>
+      <textarea id="alDescription" placeholder="Fit notes, fabric, why they're letting it go…"></textarea>
+    </div>
+    <div class="field">
+      <label for="alSeller">Seller's Instagram handle*</label>
+      <input type="text" id="alSeller" placeholder="@theirhandle" />
+    </div>
+    <button type="button" class="submit-btn" id="addListingSubmit">Add to Pending</button>
+    <div class="status-msg" id="addListingStatus"></div>
+  </div>
+
   <div class="tabs">
     <button class="tab-btn active" data-tab="pending">Pending</button>
     <button class="tab-btn" data-tab="live">Live</button>
