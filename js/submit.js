@@ -32,6 +32,7 @@
     try {
       const photoFiles = document.getElementById("photos").files;
       if (!photoFiles.length) throw new Error("Please add at least one photo.");
+      if (photoFiles.length > 3) throw new Error("Please choose up to 3 photos only.");
 
       const photo_urls = await uploadPhotos(photoFiles);
 

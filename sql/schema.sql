@@ -13,14 +13,23 @@ create table if not exists listings (
   item_name text,
   size text,
   price numeric(10,2) not null,
+  original_price numeric(10,2),
   description text,
   condition text,           -- e.g. 'New with tags', 'Like new', 'Gently worn'
   category text,            -- e.g. 'Dress', 'Bag', 'Shoes', 'Top'
+  tags text[] not null default '{}', -- admin-only, set from a fixed list in admin.html (Bridal, Wedding Guest, Vacation, Accessories, Ready to Wear)
+  go_live_at timestamptz,   -- when a 'live' item actually becomes visible to buyers; null/past = visible now
   photo_urls text[] not null default '{}',
 
   -- curation state, controlled by Mary only
   status text not null default 'pending' check (status in ('pending', 'live', 'sold', 'rejected'))
 );
+
+-- If the table already existed before a given column was added, this brings
+-- it up to date. Safe to run every time — does nothing if already applied.
+alter table listings add column if not exists original_price numeric(10,2);
+alter table listings add column if not exists tags text[] not null default '{}';
+alter table listings add column if not exists go_live_at timestamptz;
 
 create index if not exists listings_status_idx on listings (status);
 
@@ -46,7 +55,7 @@ drop policy if exists "public can read live listings" on listings;
 create policy "public can read live listings"
   on listings for select
   to anon
-  using (status = 'live');
+  using (status = 'live' and (go_live_at is null or go_live_at <= now()));
 
 -- Anyone (sellers) can submit a new listing, but it always lands as 'pending'
 -- and only the intake columns are meant to be set client-side.

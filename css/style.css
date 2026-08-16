@@ -65,6 +65,13 @@ button {
   font-size: 1rem;
 }
 
+.brand-bar .shop-link {
+  pointer-events: auto;
+  color: #fff;
+  font-size: 0.8rem;
+  text-decoration: underline;
+}
+
 .progress-track {
   position: absolute;
   top: 0; left: 0; right: 0;
@@ -164,6 +171,38 @@ button {
   margin-bottom: 12px;
 }
 
+.orig-price {
+  font-size: 0.85rem;
+  font-weight: 400;
+  opacity: 0.7;
+  text-decoration: line-through;
+}
+
+.photo-dots {
+  position: absolute;
+  top: 50%;
+  right: 12px;
+  transform: translateY(-50%);
+  z-index: 18;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  pointer-events: none;
+}
+
+.photo-dots .dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+}
+
+.photo-dots .dot.active {
+  background: #fff;
+  width: 7px;
+  height: 7px;
+}
+
 .buy-btn {
   display: block;
   width: 100%;
@@ -208,6 +247,80 @@ button {
 
 .nav-links a {
   text-decoration: underline;
+}
+
+/* ---------- Shop grid (browse everything available) ---------- */
+
+.filter-bar {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
+  -webkit-overflow-scrolling: touch;
+}
+
+.filter-bar select {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
+  background: #fff;
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-family: inherit;
+}
+
+.shop-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.shop-card {
+  display: block;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.shop-card-photo {
+  width: 100%;
+  aspect-ratio: 1;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--line);
+}
+
+.shop-card-body {
+  padding: 10px 12px 12px;
+}
+
+.shop-card-brand {
+  margin: 0;
+  font-weight: 700;
+  font-size: 0.85rem;
+}
+
+.shop-card-name {
+  margin: 2px 0 0;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.shop-card-price {
+  margin: 6px 0 0;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.shop-card-size {
+  margin: 2px 0 0;
+  font-size: 0.75rem;
+  color: var(--muted);
 }
 
 /* ---------- Shared form pages (submit / admin) ---------- */
@@ -389,6 +502,66 @@ button {
 .chip-btn.reject { background: var(--danger); color: #fff; }
 .chip-btn.sold { background: var(--ink); color: #fff; }
 .chip-btn.relist { background: var(--accent); color: #fff; }
+
+.tag-chips {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 8px;
+}
+
+.tag-chip {
+  font-size: 0.72rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  background: #fff;
+  border: 1px solid var(--line);
+  color: var(--muted);
+}
+
+.tag-chip.active {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+
+.status-badge {
+  display: inline-block;
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 3px 10px;
+  border-radius: 20px;
+  margin-top: 8px;
+}
+
+.status-badge.scheduled {
+  background: #fbead2;
+  color: #8a5a10;
+}
+
+.status-badge.live-now {
+  background: #e7f0ea;
+  color: var(--success);
+}
+
+.schedule-block {
+  margin-top: 10px;
+}
+
+.schedule-block .actions {
+  margin-bottom: 8px;
+}
+
+.schedule-input {
+  width: 100%;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  font-size: 0.8rem;
+  font-family: inherit;
+  color: var(--ink);
+  background: #fff;
+}
 
 .empty-list {
   color: var(--muted);

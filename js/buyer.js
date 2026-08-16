@@ -2,6 +2,7 @@
   const app = document.getElementById("app");
   let listings = [];
   let current = 0;
+  let currentPhoto = 0;
 
   function igDmUrl(handle) {
     const clean = (handle || "").trim().replace(/^@/, "");
@@ -14,7 +15,7 @@
         <div class="empty-state">
           <h2>No new drops right now</h2>
           <p>Check back soon — new pieces go up Mondays &amp; Thursdays.</p>
-          <div class="nav-links"><a href="submit.html">Have something to sell?</a></div>
+          <div class="nav-links"><a href="shop.html">Shop everything available</a> &nbsp;·&nbsp; <a href="submit.html">Have something to sell?</a></div>
         </div>`;
       return;
     }
@@ -25,16 +26,22 @@
 
     const cards = listings
       .map((item, i) => {
-        const photo = (item.photo_urls && item.photo_urls[0]) || "";
-        const meta = [item.size, item.condition, item.category].filter(Boolean);
+        const photos = (item.photo_urls && item.photo_urls.length ? item.photo_urls : [""]);
+        const photoIdx = i === current ? Math.min(currentPhoto, photos.length - 1) : 0;
+        const photo = photos[photoIdx];
+        const meta = [item.size, item.condition, item.category, ...(item.tags || [])].filter(Boolean);
+        const dots = photos.length > 1
+          ? `<div class="photo-dots">${photos.map((_, p) => `<div class="dot ${p === photoIdx ? "active" : ""}"></div>`).join("")}</div>`
+          : "";
         return `
         <div class="story-card ${i === current ? "active" : ""}" data-index="${i}">
           <img class="story-photo" src="${photo}" alt="${escapeHtml(item.brand)}" />
+          ${dots}
           <div class="story-info">
             <p class="brand">${escapeHtml(item.brand)}</p>
             ${item.item_name ? `<p class="item-name">${escapeHtml(item.item_name)}</p>` : ""}
             <div class="story-meta">${meta.map((m) => `<span>${escapeHtml(m)}</span>`).join("")}</div>
-            <div class="story-price">$${Number(item.price).toFixed(0)}</div>
+            <div class="story-price">$${Number(item.price).toFixed(0)}${item.original_price ? ` <span class="orig-price">originally $${Number(item.original_price).toFixed(0)}</span>` : ""}</div>
             <a class="buy-btn" target="_blank" rel="noopener" href="${igDmUrl(item.seller_ig_handle)}">Buy — DM seller</a>
           </div>
         </div>`;
@@ -43,7 +50,7 @@
 
     app.innerHTML = `
       <div class="progress-track">${segs}</div>
-      <div class="brand-bar"><span class="brand-name">The Elo Edit</span></div>
+      <div class="brand-bar"><span class="brand-name">The Elo Edit</span><a class="shop-link" href="shop.html">Shop all</a></div>
       <div class="card-stack">${cards}</div>
       <div class="tap-zone left" id="tapLeft"></div>
       <div class="tap-zone right" id="tapRight"></div>
@@ -64,6 +71,15 @@
     const next = current + dir;
     if (next < 0 || next >= listings.length) return;
     current = next;
+    currentPhoto = 0;
+    render();
+  }
+
+  function cyclePhoto(dir) {
+    const photos = listings[current].photo_urls || [];
+    const next = currentPhoto + dir;
+    if (next < 0 || next >= photos.length) return;
+    currentPhoto = next;
     render();
   }
 
@@ -76,8 +92,11 @@
     el.addEventListener("touchend", (e) => {
       const dx = e.changedTouches[0].clientX - startX;
       const dy = e.changedTouches[0].clientY - startY;
-      if (Math.abs(dx) > 50 && Math.abs(dx) > Math.abs(dy)) {
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 50) {
         go(dx < 0 ? 1 : -1);
+      } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 50) {
+        // swipe down = next photo, swipe up = previous photo
+        cyclePhoto(dy > 0 ? 1 : -1);
       }
     }, { passive: true });
   }
