@@ -508,6 +508,12 @@ button {
   color: #fff;
 }
 
+.move-controls {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
 .tab-btn {
   background: none;
   padding: 10px 4px;

@@ -168,6 +168,10 @@
         dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
       }
 
+      card.querySelectorAll("[data-move]").forEach((btn) => {
+        btn.addEventListener("click", () => moveItem(item.id, btn.dataset.move === "up" ? -1 : 1));
+      });
+
       const editToggleBtn = card.querySelector("[data-edit-toggle]");
       const editBlock = document.getElementById(`edit-${item.id}`);
       if (editToggleBtn && editBlock) {
@@ -186,6 +190,36 @@
 
       renderAdminPhotos(item.id);
     });
+  }
+
+  // ---------- manual ranking (shop grid + drops feed order) ----------
+
+  function sortLiveItems(a, b) {
+    const aHas = a.sort_order != null;
+    const bHas = b.sort_order != null;
+    if (aHas && bHas) return a.sort_order - b.sort_order;
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return new Date(b.created_at) - new Date(a.created_at);
+  }
+
+  async function moveItem(id, direction) {
+    const liveItems = allListings.filter((l) => l.status === "live").sort(sortLiveItems);
+    const idx = liveItems.findIndex((l) => l.id === id);
+    const swapIdx = idx + direction;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= liveItems.length) return;
+
+    const reordered = [...liveItems];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+
+    for (let i = 0; i < reordered.length; i++) {
+      const newOrder = i + 1;
+      if (reordered[i].sort_order !== newOrder) {
+        reordered[i].sort_order = newOrder;
+        await supabaseClient.from("listings").update({ sort_order: newOrder }).eq("id", reordered[i].id);
+      }
+    }
+    renderList();
   }
 
   // ---------- edit listing details ----------
@@ -532,6 +566,15 @@
       </div>`;
   }
 
+  function moveControlsHtml(item) {
+    if (item.status !== "live" || dmFilter !== "all") return "";
+    return `
+      <div class="move-controls">
+        <button type="button" class="filter-chip" data-move="up">&uarr; Move up</button>
+        <button type="button" class="filter-chip" data-move="down">&darr; Move down</button>
+      </div>`;
+  }
+
   function cardHtml(item) {
     const isPending = item.status === "pending";
     const actions = actionButtons(item);
@@ -546,6 +589,7 @@
           ${item.status === "sold" && item.sold_via ? `<p>Sold via ${item.sold_via === "elo_edit" ? "The Elo Edit" : "elsewhere"}</p>` : ""}
           ${tagChipsHtml(item)}
           ${liveStatusBadgeHtml(item)}
+          ${moveControlsHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
           <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
           ${editBlockHtml(item)}
