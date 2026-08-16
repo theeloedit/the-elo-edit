@@ -10,7 +10,7 @@
 
   let activeTab = "pending";
   let allListings = [];
-  const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear"];
+  const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
 
   function escapeHtml(str) {
     return String(str || "").replace(/[&<>"']/g, (c) => ({
@@ -101,9 +101,11 @@
     items.forEach((item) => {
       const card = document.querySelector(`[data-id="${item.id}"]`);
       if (!card) return;
+
       card.querySelectorAll("[data-action]").forEach((btn) => {
         btn.addEventListener("click", () => handleAction(item.id, btn.dataset.action));
       });
+
       card.querySelectorAll("[data-tag]").forEach((btn) => {
         btn.addEventListener("click", () => toggleTag(item.id, btn.dataset.tag));
       });
@@ -148,8 +150,105 @@
       if (dmToggleBtn) {
         dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
       }
+
+      renderAdminPhotos(item.id);
     });
   }
+
+  // ---------- photo management ----------
+
+  function renderAdminPhotos(itemId) {
+    const item = allListings.find((l) => l.id === itemId);
+    if (!item) return;
+    const el = document.getElementById(`admin-photos-${itemId}`);
+    if (!el) return;
+
+    const photos = item.photo_urls || [];
+    el.innerHTML = photos.map((url, idx) => `
+      <div class="admin-photo-thumb ${idx === 0 ? "primary" : ""}" data-idx="${idx}">
+        <img src="${url}" />
+        ${idx === 0
+          ? `<span class="primary-badge">Primary</span>`
+          : `<button type="button" class="set-primary-btn" data-set-primary="${idx}">Set primary</button>`}
+        <button type="button" class="remove-photo-btn" data-remove-photo="${idx}">&times;</button>
+      </div>
+    `).join("") + `
+      <label class="admin-add-photo-tile">
+        + Add
+        <input type="file" accept="image/*" multiple class="admin-add-photo-input" data-add-photo="1" />
+      </label>
+    `;
+
+    el.querySelectorAll("[data-set-primary]").forEach((btn) => {
+      btn.addEventListener("click", () => setPrimaryPhoto(itemId, Number(btn.dataset.setPrimary)));
+    });
+    el.querySelectorAll("[data-remove-photo]").forEach((btn) => {
+      btn.addEventListener("click", () => removePhoto(itemId, Number(btn.dataset.removePhoto)));
+    });
+    const addInput = el.querySelector("[data-add-photo]");
+    if (addInput) {
+      addInput.addEventListener("change", (e) => addPhotos(itemId, Array.from(e.target.files || [])));
+    }
+  }
+
+  async function savePhotoUrls(itemId, photo_urls) {
+    const item = allListings.find((l) => l.id === itemId);
+    if (item) item.photo_urls = photo_urls;
+
+    const { error } = await supabaseClient
+      .from("listings")
+      .update({ photo_urls })
+      .eq("id", itemId);
+
+    if (error) {
+      alert(error.message);
+      return false;
+    }
+    return true;
+  }
+
+  async function setPrimaryPhoto(itemId, idx) {
+    const item = allListings.find((l) => l.id === itemId);
+    if (!item) return;
+    const photos = [...(item.photo_urls || [])];
+    const [chosen] = photos.splice(idx, 1);
+    photos.unshift(chosen);
+    await savePhotoUrls(itemId, photos);
+    renderAdminPhotos(itemId);
+  }
+
+  async function removePhoto(itemId, idx) {
+    const item = allListings.find((l) => l.id === itemId);
+    if (!item) return;
+    const photos = [...(item.photo_urls || [])];
+    photos.splice(idx, 1);
+    await savePhotoUrls(itemId, photos);
+    renderAdminPhotos(itemId);
+  }
+
+  async function addPhotos(itemId, files) {
+    const item = allListings.find((l) => l.id === itemId);
+    if (!item || files.length === 0) return;
+
+    const photos = [...(item.photo_urls || [])];
+    for (const file of files) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabaseClient.storage
+        .from("listing-photos")
+        .upload(path, file, { cacheControl: "3600", upsert: false });
+      if (error) {
+        alert(error.message);
+        continue;
+      }
+      const { data } = supabaseClient.storage.from("listing-photos").getPublicUrl(path);
+      photos.push(data.publicUrl);
+    }
+    await savePhotoUrls(itemId, photos);
+    renderAdminPhotos(itemId);
+  }
+
+  // ---------- scheduling helpers ----------
 
   function toDatetimeLocalValue(date) {
     const pad = (n) => String(n).padStart(2, "0");
@@ -179,10 +278,7 @@
       ", " + d.toLocaleTimeString(undefined, { hour: "numeric", minute: "2-digit" });
   }
 
-  function tagChipsHtml(item) {
-    const tags = item.tags || [];
-    return `<div class="tag-chips">${TAG_OPTIONS.map((t) => `<button type="button" class="tag-chip ${tags.includes(t) ? "active" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}</div>`;
-  }
+  // ---------- DM helpers ----------
 
   function soldLink(item) {
     return `${window.location.origin}/sold.html?id=${item.id}`;
@@ -202,6 +298,15 @@
     if (item.status !== "live") return "";
     return `<button type="button" class="tag-chip dm-toggle ${item.dm_sent ? "active" : ""}" data-dm-toggle="1">${item.dm_sent ? "✓ DM'ed" : "Mark as DM'ed"}</button>`;
   }
+
+  // ---------- tags ----------
+
+  function tagChipsHtml(item) {
+    const tags = item.tags || [];
+    return `<div class="tag-chips">${TAG_OPTIONS.map((t) => `<button type="button" class="tag-chip ${tags.includes(t) ? "active" : ""}" data-tag="${escapeHtml(t)}">${escapeHtml(t)}</button>`).join("")}</div>`;
+  }
+
+  // ---------- status / schedule UI ----------
 
   function liveStatusBadgeHtml(item) {
     if (item.status !== "live") return "";
@@ -224,12 +329,11 @@
   }
 
   function cardHtml(item) {
-    const photo = (item.photo_urls && item.photo_urls[0]) || "";
     const isPending = item.status === "pending";
     const actions = actionButtons(item);
     return `
       <div class="admin-card" data-id="${item.id}">
-        <img src="${photo}" alt="" />
+        <div class="admin-photos" id="admin-photos-${item.id}"></div>
         <div class="details">
           <h3>${escapeHtml(item.brand)} ${item.item_name ? "— " + escapeHtml(item.item_name) : ""}</h3>
           <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid $${Number(item.original_price).toFixed(0)})</span>` : ""}</p>
@@ -263,6 +367,25 @@
     return "";
   }
 
+  async function approveWithSchedule(id, goLiveAtISO) {
+    const { error } = await supabaseClient
+      .from("listings")
+      .update({ status: "live", go_live_at: goLiveAtISO })
+      .eq("id", id);
+
+    if (error) {
+      alert(error.message);
+      return;
+    }
+
+    const item = allListings.find((l) => l.id === id);
+    if (item) {
+      item.status = "live";
+      item.go_live_at = goLiveAtISO;
+    }
+    renderList();
+  }
+
   async function toggleTag(id, tag) {
     const item = allListings.find((l) => l.id === id);
     if (!item) return;
@@ -282,25 +405,6 @@
     }
 
     item.tags = nextTags;
-    renderList();
-  }
-
-  async function approveWithSchedule(id, goLiveAtISO) {
-    const { error } = await supabaseClient
-      .from("listings")
-      .update({ status: "live", go_live_at: goLiveAtISO })
-      .eq("id", id);
-
-    if (error) {
-      alert(error.message);
-      return;
-    }
-
-    const item = allListings.find((l) => l.id === id);
-    if (item) {
-      item.status = "live";
-      item.go_live_at = goLiveAtISO;
-    }
     renderList();
   }
 

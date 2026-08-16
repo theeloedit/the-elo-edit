@@ -6,7 +6,7 @@
   const filterSize = document.getElementById("filterSize");
   const filterPrice = document.getElementById("filterPrice");
 
-  const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear"];
+  const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
 
   let allListings = [];
 
