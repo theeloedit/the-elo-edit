@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sell on The Elo Edit</title>
+<link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+
+<div class="page">
+  <header>
+    <h1>List an item</h1>
+    <p class="subtitle">Submit your piece for review. Mary curates every drop — you'll hear back before it goes live. You keep 100% of your sale.</p>
+  </header>
+
+  <form id="submitForm">
+    <div class="field">
+      <label for="photos">Photos*</label>
+      <input type="file" id="photos" accept="image/*" multiple capture="environment" required />
+      <p class="hint">Add a few clear shots. First photo is what buyers see first.</p>
+    </div>
+
+    <div class="field">
+      <label for="brand">Brand*</label>
+      <input type="text" id="brand" placeholder="e.g. Reformation" required />
+    </div>
+
+    <div class="field">
+      <label for="itemName">Item name</label>
+      <input type="text" id="itemName" placeholder="e.g. Juliette Midi Dress" />
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="size">Size*</label>
+        <input type="text" id="size" placeholder="e.g. 4 / S" required />
+      </div>
+      <div class="field">
+        <label for="price">Price ($)*</label>
+        <input type="number" id="price" min="0" step="1" placeholder="120" required />
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div class="field">
+        <label for="condition">Condition</label>
+        <select id="condition">
+          <option value="">Select…</option>
+          <option>New with tags</option>
+          <option>Like new</option>
+          <option>Gently worn</option>
+          <option>Well loved</option>
+        </select>
+      </div>
+      <div class="field">
+        <label for="category">Category</label>
+        <select id="category">
+          <option value="">Select…</option>
+          <option>Dress</option>
+          <option>Top</option>
+          <option>Bottoms</option>
+          <option>Outerwear</option>
+          <option>Bag</option>
+          <option>Shoes</option>
+          <option>Accessory</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="description">Description</label>
+      <textarea id="description" placeholder="Fit notes, fabric, why you're letting it go…"></textarea>
+    </div>
+
+    <div class="field">
+      <label for="igHandle">Your Instagram handle*</label>
+      <input type="text" id="igHandle" placeholder="@yourhandle" required />
+      <p class="hint">Buyers will DM you here directly to purchase.</p>
+    </div>
+
+    <button type="submit" class="submit-btn" id="submitBtn">Submit for review</button>
+    <div class="status-msg" id="statusMsg"></div>
+  </form>
+
+  <div class="nav-links" style="position:static; margin-top:24px;">
+    <a href="index.html">← Back to shopping</a>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabaseClient.js"></script>
+<script src="js/submit.js"></script>
+</body>
+</html>
