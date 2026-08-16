@@ -452,6 +452,13 @@ button {
 
 .submit-btn:disabled { opacity: 0.5; }
 
+.submit-btn.secondary {
+  background: #fff;
+  color: var(--ink);
+  border: 1px solid var(--line);
+  margin-top: 10px;
+}
+
 .status-msg {
   margin-top: 14px;
   padding: 12px;

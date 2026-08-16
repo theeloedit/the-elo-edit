@@ -543,6 +543,7 @@
           <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid $${Number(item.original_price).toFixed(0)})</span>` : ""}</p>
           <p>@${escapeHtml(item.seller_ig_handle)}</p>
           <p>${escapeHtml(item.condition || "")} ${item.category ? "· " + escapeHtml(item.category) : ""}</p>
+          ${item.status === "sold" && item.sold_via ? `<p>Sold via ${item.sold_via === "elo_edit" ? "The Elo Edit" : "elsewhere"}</p>` : ""}
           ${tagChipsHtml(item)}
           ${liveStatusBadgeHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
