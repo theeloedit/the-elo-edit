@@ -9,6 +9,7 @@
   const tabs = document.querySelectorAll(".tab-btn");
 
   let activeTab = "pending";
+  let dmFilter = "all";
   let allListings = [];
   const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
 
@@ -89,14 +90,30 @@
   }
 
   function renderList() {
-    const items = allListings.filter((l) => l.status === activeTab);
-
-    if (items.length === 0) {
-      listEl.innerHTML = `<div class="empty-list">Nothing here yet.</div>`;
-      return;
+    let items = allListings.filter((l) => l.status === activeTab);
+    if (activeTab === "live" && dmFilter !== "all") {
+      items = items.filter((l) => (dmFilter === "dmed" ? l.dm_sent : !l.dm_sent));
     }
 
-    listEl.innerHTML = items.map(cardHtml).join("");
+    const dmFilterHtml = activeTab === "live" ? `
+      <div class="dm-filter-bar">
+        <button type="button" class="filter-chip ${dmFilter === "all" ? "active" : ""}" data-dm-filter="all">All</button>
+        <button type="button" class="filter-chip ${dmFilter === "dmed" ? "active" : ""}" data-dm-filter="dmed">DM'ed</button>
+        <button type="button" class="filter-chip ${dmFilter === "not-dmed" ? "active" : ""}" data-dm-filter="not-dmed">Not DM'ed</button>
+      </div>` : "";
+
+    if (items.length === 0) {
+      listEl.innerHTML = dmFilterHtml + `<div class="empty-list">Nothing here yet.</div>`;
+    } else {
+      listEl.innerHTML = dmFilterHtml + items.map(cardHtml).join("");
+    }
+
+    listEl.querySelectorAll("[data-dm-filter]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        dmFilter = btn.dataset.dmFilter;
+        renderList();
+      });
+    });
 
     items.forEach((item) => {
       const card = document.querySelector(`[data-id="${item.id}"]`);
@@ -117,9 +134,9 @@
           if (btn.dataset.schedule === "now") {
             scheduleInput.value = toDatetimeLocalValue(new Date());
           } else if (btn.dataset.schedule === "mon") {
-            scheduleInput.value = toDatetimeLocalValue(nextWeekday(1, 9));
+            scheduleInput.value = toDatetimeLocalValue(nextWeekday(1, 20));
           } else if (btn.dataset.schedule === "thu") {
-            scheduleInput.value = toDatetimeLocalValue(nextWeekday(4, 9));
+            scheduleInput.value = toDatetimeLocalValue(nextWeekday(4, 20));
           }
         });
       });
@@ -151,6 +168,27 @@
         dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
       }
 
+      card.querySelectorAll("[data-move]").forEach((btn) => {
+        btn.addEventListener("click", () => moveItem(item.id, btn.dataset.move === "up" ? -1 : 1));
+      });
+
+      const storyBtn = card.querySelector("[data-story]");
+      if (storyBtn) {
+        storyBtn.addEventListener("click", async () => {
+          const original = storyBtn.textContent;
+          storyBtn.disabled = true;
+          storyBtn.textContent = "Building…";
+          try {
+            await generateStoryImage(item);
+          } catch (e) {
+            alert("Couldn't generate the story image. " + (e && e.message ? e.message : ""));
+          } finally {
+            storyBtn.disabled = false;
+            storyBtn.textContent = original;
+          }
+        });
+      }
+
       const editToggleBtn = card.querySelector("[data-edit-toggle]");
       const editBlock = document.getElementById(`edit-${item.id}`);
       if (editToggleBtn && editBlock) {
@@ -169,6 +207,159 @@
 
       renderAdminPhotos(item.id);
     });
+  }
+
+  // ---------- manual ranking (shop grid + drops feed order) ----------
+
+  function sortLiveItems(a, b) {
+    const aHas = a.sort_order != null;
+    const bHas = b.sort_order != null;
+    if (aHas && bHas) return a.sort_order - b.sort_order;
+    if (aHas) return -1;
+    if (bHas) return 1;
+    return new Date(b.created_at) - new Date(a.created_at);
+  }
+
+  async function moveItem(id, direction) {
+    const liveItems = allListings.filter((l) => l.status === "live").sort(sortLiveItems);
+    const idx = liveItems.findIndex((l) => l.id === id);
+    const swapIdx = idx + direction;
+    if (idx === -1 || swapIdx < 0 || swapIdx >= liveItems.length) return;
+
+    const reordered = [...liveItems];
+    [reordered[idx], reordered[swapIdx]] = [reordered[swapIdx], reordered[idx]];
+
+    for (let i = 0; i < reordered.length; i++) {
+      const newOrder = i + 1;
+      if (reordered[i].sort_order !== newOrder) {
+        reordered[i].sort_order = newOrder;
+        await supabaseClient.from("listings").update({ sort_order: newOrder }).eq("id", reordered[i].id);
+      }
+    }
+    renderList();
+  }
+
+  // ---------- Instagram story graphic ----------
+
+  function loadImageEl(src) {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = "anonymous";
+      img.onload = () => resolve(img);
+      img.onerror = () => reject(new Error("Photo failed to load."));
+      img.src = src;
+    });
+  }
+
+  function drawCover(ctx, img, x, y, w, h) {
+    const imgRatio = img.width / img.height;
+    const boxRatio = w / h;
+    let sx, sy, sw, sh;
+    if (imgRatio > boxRatio) {
+      sh = img.height;
+      sw = sh * boxRatio;
+      sx = (img.width - sw) / 2;
+      sy = 0;
+    } else {
+      sw = img.width;
+      sh = sw / boxRatio;
+      sx = 0;
+      sy = (img.height - sh) / 2;
+    }
+    ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
+  }
+
+  async function generateStoryImage(item) {
+    const W = 1080, H = 1920;
+    const canvas = document.createElement("canvas");
+    canvas.width = W;
+    canvas.height = H;
+    const ctx = canvas.getContext("2d");
+
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, W, H);
+
+    const photoHeight = 1360;
+    const photoUrl = (item.photo_urls && item.photo_urls[0]) || "";
+
+    if (photoUrl) {
+      const img = await loadImageEl(photoUrl);
+      drawCover(ctx, img, 0, 0, W, photoHeight);
+    } else {
+      ctx.fillStyle = "#e6d9c3";
+      ctx.fillRect(0, 0, W, photoHeight);
+    }
+
+    ctx.fillStyle = "#241a14";
+    ctx.fillRect(0, photoHeight, W, H - photoHeight);
+
+    try {
+      await Promise.all([
+        document.fonts.load("600 76px 'Cormorant Garamond'"),
+        document.fonts.load("italic 500 56px 'Cormorant Garamond'"),
+        document.fonts.load("500 36px 'Jost'"),
+        document.fonts.load("600 60px 'Jost'"),
+      ]);
+      await document.fonts.ready;
+    } catch (e) {
+      // fonts best-effort — canvas falls back to system serif/sans if unavailable
+    }
+
+    ctx.textAlign = "center";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "italic 500 56px 'Cormorant Garamond', Georgia, serif";
+    ctx.shadowColor = "rgba(0,0,0,0.5)";
+    ctx.shadowBlur = 14;
+    ctx.fillText("The Elo Edit", W / 2, 120);
+    ctx.shadowBlur = 0;
+
+    const padX = 80;
+    let y = photoHeight + 110;
+
+    ctx.textAlign = "left";
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "600 76px 'Cormorant Garamond', Georgia, serif";
+    ctx.fillText(item.brand || "", padX, y);
+
+    if (item.item_name) {
+      y += 66;
+      ctx.font = "500 40px 'Jost', sans-serif";
+      ctx.fillStyle = "#e6d9c3";
+      ctx.fillText(item.item_name, padX, y);
+    }
+
+    y += 100;
+    ctx.font = "600 60px 'Jost', sans-serif";
+    ctx.fillStyle = "#ffffff";
+    const priceLine = `$${Number(item.price).toFixed(0)}`;
+    ctx.fillText(priceLine, padX, y);
+
+    if (item.original_price) {
+      const priceWidth = ctx.measureText(priceLine).width;
+      ctx.font = "400 34px 'Jost', sans-serif";
+      ctx.fillStyle = "#b89b6f";
+      ctx.fillText(`originally $${Number(item.original_price).toFixed(0)}`, padX + priceWidth + 24, y);
+    }
+
+    y += 70;
+    ctx.font = "500 36px 'Jost', sans-serif";
+    ctx.fillStyle = "#e6d9c3";
+    const metaLine = [item.size ? `Size ${item.size}` : "", item.condition || ""].filter(Boolean).join("   ·   ");
+    ctx.fillText(metaLine, padX, y);
+
+    y += 110;
+    ctx.font = "600 38px 'Jost', sans-serif";
+    ctx.fillStyle = "#c98f7a";
+    ctx.fillText("DM to shop this piece →", padX, y);
+
+    const dataUrl = canvas.toDataURL("image/png");
+    const safeName = (item.brand || "item").toLowerCase().replace(/[^a-z0-9]+/g, "-");
+    const link = document.createElement("a");
+    link.href = dataUrl;
+    link.download = `elo-story-${safeName}-${item.id.slice(0, 8)}.png`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
   }
 
   // ---------- edit listing details ----------
@@ -453,8 +644,8 @@
   }
 
   function defaultScheduleValue() {
-    const nextMon = nextWeekday(1, 9);
-    const nextThu = nextWeekday(4, 9);
+    const nextMon = nextWeekday(1, 20);
+    const nextThu = nextWeekday(4, 20);
     const soonest = nextMon < nextThu ? nextMon : nextThu;
     return toDatetimeLocalValue(soonest);
   }
@@ -508,11 +699,25 @@
       <div class="schedule-block">
         <div class="actions" style="margin-top:0;">
           <button type="button" class="chip-btn" data-schedule="now">Now</button>
-          <button type="button" class="chip-btn" data-schedule="mon">Next Mon 9am</button>
-          <button type="button" class="chip-btn" data-schedule="thu">Next Thu 9am</button>
+          <button type="button" class="chip-btn" data-schedule="mon">Next Mon 8pm</button>
+          <button type="button" class="chip-btn" data-schedule="thu">Next Thu 8pm</button>
         </div>
         <input type="datetime-local" class="schedule-input" value="${defaultScheduleValue()}" />
       </div>`;
+  }
+
+  function moveControlsHtml(item) {
+    if (item.status !== "live" || dmFilter !== "all") return "";
+    return `
+      <div class="move-controls">
+        <button type="button" class="filter-chip" data-move="up">&uarr; Move up</button>
+        <button type="button" class="filter-chip" data-move="down">&darr; Move down</button>
+      </div>`;
+  }
+
+  function storyBtnHtml(item) {
+    if (item.status !== "pending" && item.status !== "live") return "";
+    return `<button type="button" class="chip-btn" data-story="1" style="background:var(--accent-soft); color:var(--ink);">Download IG story</button>`;
   }
 
   function cardHtml(item) {
@@ -526,10 +731,12 @@
           <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid $${Number(item.original_price).toFixed(0)})</span>` : ""}</p>
           <p>@${escapeHtml(item.seller_ig_handle)}</p>
           <p>${escapeHtml(item.condition || "")} ${item.category ? "· " + escapeHtml(item.category) : ""}</p>
+          ${item.status === "sold" && item.sold_via ? `<p>Sold via ${item.sold_via === "elo_edit" ? "The Elo Edit" : "elsewhere"}</p>` : ""}
           ${tagChipsHtml(item)}
           ${liveStatusBadgeHtml(item)}
+          ${moveControlsHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
+          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
           ${editBlockHtml(item)}
         </div>
       </div>`;
