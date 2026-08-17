@@ -269,6 +269,35 @@
     ctx.drawImage(img, sx, sy, sw, sh, x, y, w, h);
   }
 
+  function wrapText(ctx, text, maxWidth) {
+    const words = String(text || "").split(" ");
+    const lines = [];
+    let line = "";
+    words.forEach((word) => {
+      const test = line ? line + " " + word : word;
+      if (ctx.measureText(test).width > maxWidth && line) {
+        lines.push(line);
+        line = word;
+      } else {
+        line = test;
+      }
+    });
+    if (line) lines.push(line);
+    return lines;
+  }
+
+  function drawDottedLine(ctx, x1, y1, x2, y2, color) {
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = 2;
+    ctx.setLineDash([2, 8]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y1);
+    ctx.lineTo(x2, y2);
+    ctx.stroke();
+    ctx.restore();
+  }
+
   async function generateStoryImage(item) {
     const W = 1080, H = 1920;
     const canvas = document.createElement("canvas");
@@ -276,81 +305,112 @@
     canvas.height = H;
     const ctx = canvas.getContext("2d");
 
-    ctx.fillStyle = "#ffffff";
+    const CREAM = "#eae1c8";
+    const BROWN = "#5c4a30";
+    const OXBLOOD = "#6d2323";
+    const PLACEHOLDER = "#d8cba9";
+
+    ctx.fillStyle = CREAM;
     ctx.fillRect(0, 0, W, H);
-
-    const photoHeight = 1360;
-    const photoUrl = (item.photo_urls && item.photo_urls[0]) || "";
-
-    if (photoUrl) {
-      const img = await loadImageEl(photoUrl);
-      drawCover(ctx, img, 0, 0, W, photoHeight);
-    } else {
-      ctx.fillStyle = "#e6d9c3";
-      ctx.fillRect(0, 0, W, photoHeight);
-    }
-
-    ctx.fillStyle = "#241a14";
-    ctx.fillRect(0, photoHeight, W, H - photoHeight);
 
     try {
       await Promise.all([
-        document.fonts.load("600 76px 'Cormorant Garamond'"),
-        document.fonts.load("italic 500 56px 'Cormorant Garamond'"),
-        document.fonts.load("500 36px 'Jost'"),
-        document.fonts.load("600 60px 'Jost'"),
+        document.fonts.load("italic 500 90px 'Cormorant Garamond'"),
+        document.fonts.load("600 92px 'Cormorant Garamond'"),
+        document.fonts.load("italic 500 54px 'Cormorant Garamond'"),
+        document.fonts.load("500 48px 'Cormorant Garamond'"),
+        document.fonts.load("600 48px 'Cormorant Garamond'"),
+        document.fonts.load("400 40px 'Cormorant Garamond'"),
       ]);
       await document.fonts.ready;
     } catch (e) {
-      // fonts best-effort — canvas falls back to system serif/sans if unavailable
+      // fonts best-effort — canvas falls back to system serif if unavailable
     }
 
     ctx.textAlign = "center";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "italic 500 56px 'Cormorant Garamond', Georgia, serif";
-    ctx.shadowColor = "rgba(0,0,0,0.5)";
-    ctx.shadowBlur = 14;
-    ctx.fillText("The Elo Edit", W / 2, 120);
-    ctx.shadowBlur = 0;
+    ctx.fillStyle = OXBLOOD;
+    ctx.font = "italic 500 90px 'Cormorant Garamond', Georgia, serif";
+    ctx.fillText("elo", W / 2, 150);
 
-    const padX = 80;
-    let y = photoHeight + 110;
+    const photos = (item.photo_urls || []).slice(0, 3);
+    const photoColX = 650;
+    const photoColW = 360;
+    const photoTop = 280;
+    const photoBottom = 1840;
+    const gap = 20;
+    const count = Math.max(photos.length, 1);
+    const eachH = (photoBottom - photoTop - gap * (count - 1)) / count;
 
+    if (photos.length === 0) {
+      ctx.fillStyle = PLACEHOLDER;
+      ctx.fillRect(photoColX, photoTop, photoColW, photoBottom - photoTop);
+    } else {
+      for (let i = 0; i < photos.length; i++) {
+        const py = photoTop + i * (eachH + gap);
+        try {
+          const img = await loadImageEl(photos[i]);
+          drawCover(ctx, img, photoColX, py, photoColW, eachH);
+        } catch (e) {
+          ctx.fillStyle = PLACEHOLDER;
+          ctx.fillRect(photoColX, py, photoColW, eachH);
+        }
+      }
+    }
+
+    const padX = 70;
+    const textColW = 560;
     ctx.textAlign = "left";
-    ctx.fillStyle = "#ffffff";
-    ctx.font = "600 76px 'Cormorant Garamond', Georgia, serif";
-    ctx.fillText(item.brand || "", padX, y);
+    ctx.fillStyle = BROWN;
+
+    let y = 400;
+
+    ctx.font = "600 92px 'Cormorant Garamond', Georgia, serif";
+    wrapText(ctx, item.brand || "", textColW).forEach((line) => {
+      ctx.fillText(line, padX, y);
+      y += 105;
+    });
 
     if (item.item_name) {
-      y += 66;
-      ctx.font = "500 40px 'Jost', sans-serif";
-      ctx.fillStyle = "#e6d9c3";
+      y += 10;
+      ctx.font = "italic 500 54px 'Cormorant Garamond', Georgia, serif";
       ctx.fillText(item.item_name, padX, y);
+      y += 90;
+    } else {
+      y += 20;
     }
 
-    y += 100;
-    ctx.font = "600 60px 'Jost', sans-serif";
-    ctx.fillStyle = "#ffffff";
-    const priceLine = `$${Number(item.price).toFixed(0)}`;
-    ctx.fillText(priceLine, padX, y);
-
+    ctx.font = "500 48px 'Cormorant Garamond', Georgia, serif";
+    ctx.fillText(`Size: ${item.size || "—"}`, padX, y);
+    y += 72;
+    ctx.fillText(`Price: $${Number(item.price).toFixed(0)}`, padX, y);
+    y += 72;
     if (item.original_price) {
-      const priceWidth = ctx.measureText(priceLine).width;
-      ctx.font = "400 34px 'Jost', sans-serif";
-      ctx.fillStyle = "#b89b6f";
-      ctx.fillText(`originally $${Number(item.original_price).toFixed(0)}`, padX + priceWidth + 24, y);
+      ctx.fillText(`Paid: $${Number(item.original_price).toFixed(0)}`, padX, y);
+      y += 72;
     }
 
+    y += 30;
+    drawDottedLine(ctx, padX, y, padX + textColW, y, BROWN);
     y += 70;
-    ctx.font = "500 36px 'Jost', sans-serif";
-    ctx.fillStyle = "#e6d9c3";
-    const metaLine = [item.size ? `Size ${item.size}` : "", item.condition || ""].filter(Boolean).join("   ·   ");
-    ctx.fillText(metaLine, padX, y);
 
-    y += 110;
-    ctx.font = "600 38px 'Jost', sans-serif";
-    ctx.fillStyle = "#c98f7a";
-    ctx.fillText("DM to shop this piece →", padX, y);
+    const noteText = item.description || item.condition || "";
+    if (noteText) {
+      ctx.font = "600 48px 'Cormorant Garamond', Georgia, serif";
+      ctx.fillText("Notes:", padX, y);
+      y += 60;
+      ctx.font = "400 40px 'Cormorant Garamond', Georgia, serif";
+      wrapText(ctx, noteText, textColW).slice(0, 3).forEach((line) => {
+        ctx.fillText(line, padX, y);
+        y += 52;
+      });
+      y += 20;
+    }
+
+    drawDottedLine(ctx, padX, y, padX + textColW, y, BROWN);
+    y += 70;
+
+    ctx.font = "500 48px 'Cormorant Garamond', Georgia, serif";
+    ctx.fillText(`Seller: @${item.seller_ig_handle || ""}`, padX, y);
 
     const dataUrl = canvas.toDataURL("image/png");
     const safeName = (item.brand || "item").toLowerCase().replace(/[^a-z0-9]+/g, "-");
