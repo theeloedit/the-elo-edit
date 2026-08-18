@@ -410,7 +410,7 @@
     y += 70;
 
     ctx.font = "500 48px 'Cormorant Garamond', Georgia, serif";
-    ctx.fillText(`Seller: @${item.seller_ig_handle || ""}`, padX, y);
+    ctx.fillText(item.seller_ig_handle ? `Seller: @${item.seller_ig_handle}` : "Seller:", padX, y);
 
     const dataUrl = canvas.toDataURL("image/png");
     const safeName = (item.brand || "item").toLowerCase().replace(/[^a-z0-9]+/g, "-");
