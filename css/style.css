@@ -81,6 +81,15 @@ button {
   font-size: 1.45rem;
 }
 
+.brand-bar .brand-logo {
+  grid-column: 2;
+  justify-self: center;
+  display: block;
+  height: 20px;
+  width: auto;
+  filter: drop-shadow(0 1px 4px rgba(0,0,0,0.5));
+}
+
 .brand-bar .nav-link {
   pointer-events: auto;
   color: #fff;
