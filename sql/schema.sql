@@ -21,6 +21,7 @@ create table if not exists listings (
   go_live_at timestamptz,   -- when a 'live' item actually becomes visible to buyers; null/past = visible now
   dm_sent boolean not null default false, -- admin-only checkbox: have you sent the seller their "you're in the drop" DM?
   photo_urls text[] not null default '{}',
+  sort_order integer,       -- admin-only manual ranking for the live shop grid + drops feed; null = falls back to newest-first
 
   -- curation state, controlled by Mary only
   status text not null default 'pending' check (status in ('pending', 'live', 'sold', 'rejected'))
@@ -32,6 +33,7 @@ alter table listings add column if not exists original_price numeric(10,2);
 alter table listings add column if not exists tags text[] not null default '{}';
 alter table listings add column if not exists go_live_at timestamptz;
 alter table listings add column if not exists dm_sent boolean not null default false;
+alter table listings add column if not exists sort_order integer;
 
 create index if not exists listings_status_idx on listings (status);
 
@@ -74,7 +76,8 @@ create policy "admin can read all listings"
   to authenticated
   using (true);
 
--- Only a logged-in admin can update status (approve, mark sold, reject) or edit details
+-- Only a logged-in admin can update status (approve, mark sold, reject), edit
+-- details, or change sort_order
 drop policy if exists "admin can update listings" on listings;
 create policy "admin can update listings"
   on listings for update
@@ -89,6 +92,13 @@ create policy "admin can delete listings"
   to authenticated
   using (true);
 
+-- Only a logged-in admin can add a listing manually (the "Add a listing" panel)
+drop policy if exists "admin can insert listings" on listings;
+create policy "admin can insert listings"
+  on listings for insert
+  to authenticated
+  with check (true);
+
 -- 3. Storage bucket for listing photos
 insert into storage.buckets (id, name, public)
 values ('listing-photos', 'listing-photos', true)
@@ -99,6 +109,14 @@ drop policy if exists "public can upload listing photos" on storage.objects;
 create policy "public can upload listing photos"
   on storage.objects for insert
   to anon
+  with check (bucket_id = 'listing-photos');
+
+-- Admin can also upload photos (the "Add a listing manually" panel and photo
+-- management run as a logged-in admin, not anon)
+drop policy if exists "admin can upload listing photos" on storage.objects;
+create policy "admin can upload listing photos"
+  on storage.objects for insert
+  to authenticated
   with check (bucket_id = 'listing-photos');
 
 -- Anyone can view listing photos (public bucket, needed for the buyer feed)

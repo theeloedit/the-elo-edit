@@ -91,8 +91,11 @@
 
   function renderList() {
     let items = allListings.filter((l) => l.status === activeTab);
-    if (activeTab === "live" && dmFilter !== "all") {
-      items = items.filter((l) => (dmFilter === "dmed" ? l.dm_sent : !l.dm_sent));
+    if (activeTab === "live") {
+      items = items.slice().sort(sortLiveItems);
+      if (dmFilter !== "all") {
+        items = items.filter((l) => (dmFilter === "dmed" ? l.dm_sent : !l.dm_sent));
+      }
     }
 
     const dmFilterHtml = activeTab === "live" ? `
@@ -233,7 +236,11 @@
       const newOrder = i + 1;
       if (reordered[i].sort_order !== newOrder) {
         reordered[i].sort_order = newOrder;
-        await supabaseClient.from("listings").update({ sort_order: newOrder }).eq("id", reordered[i].id);
+        const { error } = await supabaseClient.from("listings").update({ sort_order: newOrder }).eq("id", reordered[i].id);
+        if (error) {
+          alert("Couldn't save the new order: " + error.message);
+          return;
+        }
       }
     }
     renderList();
@@ -729,7 +736,7 @@
 
   function copyDmHtml(item) {
     if (item.status !== "live") return "";
-    return `<button type="button" class="chip-btn" data-copy-dm="1" style="background:var(--ink); color:#fff;">Copy DM message</button>`;
+    return `<button type="button" class="chip-btn" data-copy-dm="1">Copy DM message</button>`;
   }
 
   function dmToggleHtml(item) {
@@ -777,7 +784,7 @@
 
   function storyBtnHtml(item) {
     if (item.status !== "pending" && item.status !== "live") return "";
-    return `<button type="button" class="chip-btn" data-story="1" style="background:var(--accent-soft); color:var(--ink);">Download IG story</button>`;
+    return `<button type="button" class="chip-btn" data-story="1">Download IG story</button>`;
   }
 
   function cardHtml(item) {
