@@ -385,6 +385,36 @@ button {
   margin: 0 auto 16px;
 }
 
+.shop-topbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--cream);
+  padding-top: 4px;
+  padding-bottom: 12px;
+}
+
+.shop-topbar .page-logo {
+  margin: 0;
+}
+
+.sell-btn {
+  font-family: var(--font-body);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #fff;
+  background: var(--ink);
+  padding: 8px 16px;
+  border-radius: 20px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
 .page-nav {
   margin-bottom: 10px;
 }
