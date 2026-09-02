@@ -731,7 +731,7 @@
 
   function dmMessageFor(item) {
     const when = item.go_live_at ? formatGoLive(item.go_live_at) : "our next drop";
-    return `Hey! Your ${item.brand}${item.item_name ? " " + item.item_name : ""} was chosen for our next drop — going live ${when}. Look out for DMs! Once it sells, you can mark it sold yourself here: ${soldLink(item)}`;
+    return `Hey! Your ${item.brand}${item.item_name ? " " + item.item_name : ""} was chosen for our next drop — going live ${when}. Look out for DMs! You can update your price or mark it sold anytime here: ${soldLink(item)}`;
   }
 
   function copyDmHtml(item) {

@@ -32,7 +32,7 @@
     }
 
     if (data.status !== "live") {
-      content.innerHTML = `<div class="empty-list">This item isn't live yet, so there's nothing to mark sold.</div>`;
+      content.innerHTML = `<div class="empty-list">This item isn't live yet, so there's nothing to update.</div>`;
       return;
     }
 
@@ -42,42 +42,76 @@
         <img src="${photo}" alt="" />
         <div class="details">
           <h3>${escapeHtml(data.brand)} ${data.item_name ? "— " + escapeHtml(data.item_name) : ""}</h3>
-          <p>Size ${escapeHtml(data.size || "—")} · $${Number(data.price).toFixed(0)}</p>
+          <p>Size ${escapeHtml(data.size || "—")} · $<span id="currentPrice">${Number(data.price).toFixed(0)}</span></p>
         </div>
       </div>
-      <button type="button" class="submit-btn" id="soldEloBtn">Sold through The Elo Edit</button>
-      <button type="button" class="submit-btn secondary" id="soldElsewhereBtn">Sold elsewhere</button>
+
+      <div class="field">
+        <label for="newPrice">Update your price ($)</label>
+        <input type="number" id="newPrice" min="1" step="1" value="${Number(data.price).toFixed(0)}" />
+      </div>
+      <button type="button" class="submit-btn secondary" id="savePriceBtn">Update price</button>
+      <div class="status-msg" id="priceStatusMsg"></div>
+
+      <button type="button" class="submit-btn" id="confirmBtn" style="margin-top:24px;">Yes, mark this sold</button>
       <div class="status-msg" id="statusMsg"></div>
     `;
 
-    document.getElementById("soldEloBtn").addEventListener("click", () => markSold("elo_edit"));
-    document.getElementById("soldElsewhereBtn").addEventListener("click", () => markSold("elsewhere"));
+    document.getElementById("confirmBtn").addEventListener("click", markSold);
+    document.getElementById("savePriceBtn").addEventListener("click", updatePrice);
   }
 
-  async function markSold(channel) {
-    const eloBtn = document.getElementById("soldEloBtn");
-    const elsewhereBtn = document.getElementById("soldElsewhereBtn");
-    const statusMsg = document.getElementById("statusMsg");
-    const clickedBtn = channel === "elo_edit" ? eloBtn : elsewhereBtn;
-    const originalText = clickedBtn.textContent;
+  async function updatePrice() {
+    const btn = document.getElementById("savePriceBtn");
+    const statusMsg = document.getElementById("priceStatusMsg");
+    const input = document.getElementById("newPrice");
+    const newPrice = Number(input.value);
 
-    eloBtn.disabled = true;
-    elsewhereBtn.disabled = true;
-    clickedBtn.textContent = "Marking sold…";
+    if (!newPrice || newPrice <= 0) {
+      statusMsg.textContent = "Enter a price greater than $0.";
+      statusMsg.className = "status-msg show error";
+      return;
+    }
 
-    const { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id, p_channel: channel });
+    btn.disabled = true;
+    btn.textContent = "Updating…";
+
+    const { error } = await supabaseClient.rpc("update_listing_price", { listing_id: id, new_price: newPrice });
+
+    btn.disabled = false;
+    btn.textContent = "Update price";
 
     if (error) {
       statusMsg.textContent = error.message;
       statusMsg.className = "status-msg show error";
-      eloBtn.disabled = false;
-      elsewhereBtn.disabled = false;
-      clickedBtn.textContent = originalText;
       return;
     }
 
-    eloBtn.style.display = "none";
-    elsewhereBtn.style.display = "none";
+    const currentPriceEl = document.getElementById("currentPrice");
+    if (currentPriceEl) currentPriceEl.textContent = newPrice.toFixed(0);
+    statusMsg.textContent = "Price updated!";
+    statusMsg.className = "status-msg show success";
+  }
+
+  async function markSold() {
+    const btn = document.getElementById("confirmBtn");
+    const statusMsg = document.getElementById("statusMsg");
+    btn.disabled = true;
+    btn.textContent = "Marking sold…";
+
+    const { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id });
+
+    if (error) {
+      statusMsg.textContent = error.message;
+      statusMsg.className = "status-msg show error";
+      btn.disabled = false;
+      btn.textContent = "Yes, mark this sold";
+      return;
+    }
+
+    btn.style.display = "none";
+    const savePriceBtn = document.getElementById("savePriceBtn");
+    if (savePriceBtn) savePriceBtn.style.display = "none";
     statusMsg.textContent = "Marked as sold — it's off the site. Thanks for selling with The Elo Edit!";
     statusMsg.className = "status-msg show success";
   }

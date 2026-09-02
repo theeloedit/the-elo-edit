@@ -148,6 +148,20 @@ $$;
 
 grant execute on function mark_listing_sold(uuid) to anon;
 
+-- Let a seller update their own item's price via the same private link,
+-- for the same reason as above — scoped so it only ever touches price on a
+-- 'live' item, and only if you know its exact id.
+create or replace function update_listing_price(listing_id uuid, new_price numeric)
+returns void
+language sql
+security definer
+set search_path = public
+as $$
+  update listings set price = new_price where id = listing_id and status = 'live' and new_price > 0;
+$$;
+
+grant execute on function update_listing_price(uuid, numeric) to anon;
+
 -- 5. Create Mary's admin login
 -- Do this in the Supabase dashboard instead of SQL:
 -- Authentication → Users → Add user → enter Mary's email + a password.
