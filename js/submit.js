@@ -30,6 +30,11 @@
     statusMsg.className = "status-msg";
 
     try {
+      const agreeTerms = document.getElementById("agreeTerms");
+      if (!agreeTerms || !agreeTerms.checked) {
+        throw new Error("Please agree to the seller terms before submitting.");
+      }
+
       const photoFiles = document.getElementById("photos").files;
       if (!photoFiles.length) throw new Error("Please add at least one photo.");
       if (photoFiles.length > 3) throw new Error("Please choose up to 3 photos only.");
