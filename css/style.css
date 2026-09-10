@@ -134,6 +134,9 @@ button {
   font-style: italic;
   letter-spacing: 0.01em;
   font-size: 1.45rem;
+  pointer-events: auto;
+  text-decoration: none;
+  color: inherit;
 }
 
 .brand-bar .brand-logo {
@@ -439,6 +442,16 @@ button {
   margin: 0 auto 16px;
 }
 
+.logo-link {
+  display: block;
+  width: fit-content;
+  margin: 0 auto 16px;
+}
+
+.logo-link .page-logo {
+  margin: 0;
+}
+
 .shop-topbar {
   position: sticky;
   top: 0;
@@ -451,7 +464,7 @@ button {
   padding-bottom: 12px;
 }
 
-.shop-topbar .page-logo {
+.shop-topbar .logo-link {
   grid-column: 2;
   justify-self: center;
   margin: 0;

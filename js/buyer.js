@@ -52,7 +52,7 @@
       <div class="progress-track">${segs}</div>
       <div class="brand-bar">
         <a class="nav-link nav-left" href="submit.html">Sell</a>
-        <img class="brand-logo" src="img/wordmark-white.png" alt="The Elo Edit" />
+        <a class="brand-name" href="index.html">The Elo Edit</a>
         <a class="nav-link nav-right" href="shop.html">Shop all</a>
       </div>
       <div class="card-stack">${cards}</div>
@@ -111,6 +111,26 @@
     }, { passive: true });
   }
 
+  // Trackpad / mouse-wheel support so the feed also works on a laptop,
+  // where there's no touchscreen to swipe on.
+  function attachWheel(el) {
+    let locked = false;
+    el.addEventListener("wheel", (e) => {
+      e.preventDefault();
+      if (locked) return;
+      const dx = e.deltaX, dy = e.deltaY;
+      if (Math.abs(dx) > Math.abs(dy) && Math.abs(dx) > 25) {
+        locked = true;
+        go(dx > 0 ? 1 : -1);
+        setTimeout(() => { locked = false; }, 400);
+      } else if (Math.abs(dy) > Math.abs(dx) && Math.abs(dy) > 25) {
+        locked = true;
+        cyclePhoto(dy > 0 ? 1 : -1);
+        setTimeout(() => { locked = false; }, 400);
+      }
+    }, { passive: false });
+  }
+
   function getRequestedItemId() {
     return new URLSearchParams(window.location.search).get("item");
   }
@@ -140,5 +160,6 @@
   }
 
   attachSwipe(app);
+  attachWheel(app);
   load();
 })();
