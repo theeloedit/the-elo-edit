@@ -320,6 +320,27 @@ button {
 
 .buy-btn:active { opacity: 0.85; }
 
+.buy-note {
+  margin: 8px 0 0;
+  font-size: 0.72rem;
+  color: rgba(255,255,255,0.75);
+  text-align: center;
+}
+
+.story-counter {
+  position: absolute;
+  top: 48px;
+  left: 0;
+  right: 0;
+  z-index: 19;
+  text-align: center;
+  color: #fff;
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  text-shadow: 0 1px 4px rgba(0,0,0,0.5);
+  pointer-events: none;
+}
+
 .empty-state, .loading-state {
   height: 100%;
   display: flex;
@@ -356,22 +377,23 @@ button {
 
 .filter-bar {
   display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.chip-row {
+  display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 4px;
-  margin-bottom: 16px;
+  padding-bottom: 2px;
   -webkit-overflow-scrolling: touch;
 }
 
-.filter-bar select {
+.chip-row .tag-chip {
   flex: 0 0 auto;
-  padding: 8px 12px;
-  border: 1px solid var(--line);
-  border-radius: 20px;
+  white-space: nowrap;
   background: #fff;
-  font-size: 0.78rem;
-  color: var(--ink);
-  font-family: inherit;
 }
 
 .shop-grid {

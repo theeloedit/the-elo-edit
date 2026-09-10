@@ -43,6 +43,7 @@
             <div class="story-meta">${meta.map((m) => `<span>${escapeHtml(m)}</span>`).join("")}</div>
             <div class="story-price">$${Number(item.price).toFixed(0)}${item.original_price ? ` <span class="orig-price">originally $${Number(item.original_price).toFixed(0)}</span>` : ""}</div>
             <a class="buy-btn" target="_blank" rel="noopener" href="${igDmUrl(item.seller_ig_handle)}">Buy — DM seller</a>
+            <p class="buy-note">You'll message the seller directly on Instagram to buy.</p>
           </div>
         </div>`;
       })
@@ -55,6 +56,7 @@
         <a class="brand-logo-link" href="index.html"><img class="brand-logo" src="img/wordmark-white.png" alt="The Elo Edit" /></a>
         <a class="nav-link nav-right" href="shop.html">Shop all</a>
       </div>
+      <div class="story-counter">${current + 1} / ${listings.length}</div>
       <div class="card-stack">${cards}</div>
       <div class="tap-zone left" id="tapLeft"></div>
       <div class="tap-zone right" id="tapRight"></div>
