@@ -52,7 +52,7 @@
       <div class="progress-track">${segs}</div>
       <div class="brand-bar">
         <a class="nav-link nav-left" href="submit.html">Sell</a>
-        <a class="brand-name" href="index.html">The Elo Edit</a>
+        <a class="brand-logo-link" href="index.html"><img class="brand-logo" src="img/wordmark-white.png" alt="The Elo Edit" /></a>
         <a class="nav-link nav-right" href="shop.html">Shop all</a>
       </div>
       <div class="card-stack">${cards}</div>
