@@ -305,6 +305,22 @@
     ctx.restore();
   }
 
+  function drawCircleMark(ctx, cx, cy, radius, label, font, color) {
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.font = font;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i < 4; i++) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      ctx.rotate((i * Math.PI) / 2);
+      ctx.fillText(label, 0, -radius);
+      ctx.restore();
+    }
+    ctx.restore();
+  }
+
   async function generateStoryImage(item) {
     const W = 1080, H = 1920;
     const canvas = document.createElement("canvas");
@@ -312,32 +328,30 @@
     canvas.height = H;
     const ctx = canvas.getContext("2d");
 
-    const CREAM = "#eae1c8";
-    const BROWN = "#5c4a30";
-    const OXBLOOD = "#6d2323";
+    const BG = "#fdfaf5";
+    const INK = "#141414";
+    const LOGO_GRAY = "#595959";
+    const RUST = "#6f4b25";
     const PLACEHOLDER = "#d8cba9";
 
-    ctx.fillStyle = CREAM;
+    ctx.fillStyle = BG;
     ctx.fillRect(0, 0, W, H);
 
     try {
       await Promise.all([
-        document.fonts.load("italic 500 90px 'Cormorant Garamond'"),
-        document.fonts.load("600 92px 'Cormorant Garamond'"),
-        document.fonts.load("italic 500 54px 'Cormorant Garamond'"),
-        document.fonts.load("500 48px 'Cormorant Garamond'"),
-        document.fonts.load("600 48px 'Cormorant Garamond'"),
-        document.fonts.load("400 40px 'Cormorant Garamond'"),
+        document.fonts.load("800 92px 'Playfair Display'"),
+        document.fonts.load("700 30px 'Jost'"),
+        document.fonts.load("italic 500 54px 'Jost'"),
+        document.fonts.load("500 48px 'Jost'"),
+        document.fonts.load("600 48px 'Jost'"),
+        document.fonts.load("400 40px 'Jost'"),
       ]);
       await document.fonts.ready;
     } catch (e) {
-      // fonts best-effort — canvas falls back to system serif if unavailable
+      // fonts best-effort — canvas falls back to system fonts if unavailable
     }
 
-    ctx.textAlign = "center";
-    ctx.fillStyle = OXBLOOD;
-    ctx.font = "italic 500 90px 'Cormorant Garamond', Georgia, serif";
-    ctx.fillText("elo", W / 2, 150);
+    drawCircleMark(ctx, W / 2, 104, 52, "ELO", "700 30px 'Jost', Arial, sans-serif", LOGO_GRAY);
 
     const photos = (item.photo_urls || []).slice(0, 3);
     const photoColX = 650;
@@ -367,11 +381,11 @@
     const padX = 70;
     const textColW = 560;
     ctx.textAlign = "left";
-    ctx.fillStyle = BROWN;
+    ctx.fillStyle = INK;
 
     let y = 400;
 
-    ctx.font = "600 92px 'Cormorant Garamond', Georgia, serif";
+    ctx.font = "800 92px 'Playfair Display', Georgia, serif";
     wrapText(ctx, item.brand || "", textColW).forEach((line) => {
       ctx.fillText(line, padX, y);
       y += 105;
@@ -379,14 +393,14 @@
 
     if (item.item_name) {
       y += 10;
-      ctx.font = "italic 500 54px 'Cormorant Garamond', Georgia, serif";
+      ctx.font = "italic 500 54px 'Jost', Georgia, serif";
       ctx.fillText(item.item_name, padX, y);
       y += 90;
     } else {
       y += 20;
     }
 
-    ctx.font = "500 48px 'Cormorant Garamond', Georgia, serif";
+    ctx.font = "500 48px 'Jost', Arial, sans-serif";
     ctx.fillText(`Size: ${item.size || "—"}`, padX, y);
     y += 72;
     ctx.fillText(`Price: $${Number(item.price).toFixed(0)}`, padX, y);
@@ -397,15 +411,15 @@
     }
 
     y += 30;
-    drawDottedLine(ctx, padX, y, padX + textColW, y, BROWN);
+    drawDottedLine(ctx, padX, y, padX + textColW, y, RUST);
     y += 70;
 
     const noteText = item.description || item.condition || "";
     if (noteText) {
-      ctx.font = "600 48px 'Cormorant Garamond', Georgia, serif";
+      ctx.font = "600 48px 'Jost', Arial, sans-serif";
       ctx.fillText("Notes:", padX, y);
       y += 60;
-      ctx.font = "400 40px 'Cormorant Garamond', Georgia, serif";
+      ctx.font = "400 40px 'Jost', Arial, sans-serif";
       wrapText(ctx, noteText, textColW).slice(0, 3).forEach((line) => {
         ctx.fillText(line, padX, y);
         y += 52;
@@ -413,10 +427,10 @@
       y += 20;
     }
 
-    drawDottedLine(ctx, padX, y, padX + textColW, y, BROWN);
+    drawDottedLine(ctx, padX, y, padX + textColW, y, RUST);
     y += 70;
 
-    ctx.font = "500 48px 'Cormorant Garamond', Georgia, serif";
+    ctx.font = "500 48px 'Jost', Arial, sans-serif";
     ctx.fillText(item.seller_ig_handle ? `Seller: @${item.seller_ig_handle}` : "Seller:", padX, y);
 
     const dataUrl = canvas.toDataURL("image/png");
