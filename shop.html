@@ -23,10 +23,16 @@
   </header>
 
   <div class="filter-bar" id="filterBar" style="display:none;">
-    <div class="chip-row" id="filterCategory"></div>
-    <div class="chip-row" id="filterTag"></div>
-    <div class="chip-row" id="filterSize"></div>
-    <div class="chip-row" id="filterPrice"></div>
+    <select id="filterCategory"><option value="">Category</option></select>
+    <select id="filterTag"><option value="">Tag</option></select>
+    <select id="filterSize"><option value="">Size</option></select>
+    <select id="filterPrice">
+      <option value="">Price</option>
+      <option value="0-100">Under $100</option>
+      <option value="100-250">$100–250</option>
+      <option value="250-500">$250–500</option>
+      <option value="500-999999">$500+</option>
+    </select>
   </div>
 
   <div id="shopGrid"><div class="empty-list">Loading…</div></div>

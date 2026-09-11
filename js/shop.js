@@ -1,21 +1,14 @@
 (function () {
   const grid = document.getElementById("shopGrid");
   const filterBar = document.getElementById("filterBar");
-  const categoryRow = document.getElementById("filterCategory");
-  const tagRow = document.getElementById("filterTag");
-  const sizeRow = document.getElementById("filterSize");
-  const priceRow = document.getElementById("filterPrice");
+  const filterCategory = document.getElementById("filterCategory");
+  const filterTag = document.getElementById("filterTag");
+  const filterSize = document.getElementById("filterSize");
+  const filterPrice = document.getElementById("filterPrice");
 
   const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
-  const PRICE_OPTIONS = [
-    { value: "0-100", label: "Under $100" },
-    { value: "100-250", label: "$100–250" },
-    { value: "250-500", label: "$250–500" },
-    { value: "500-999999", label: "$500+" },
-  ];
 
   let allListings = [];
-  const state = { category: "", tag: "", size: "", price: "" };
 
   function escapeHtml(str) {
     return String(str || "").replace(/[&<>"']/g, (c) => ({
@@ -37,27 +30,14 @@
       </a>`;
   }
 
-  function buildChipRow(container, options, key) {
-    container.innerHTML = options
-      .map((o) => `<button type="button" class="tag-chip ${state[key] === o.value ? "active" : ""}" data-value="${escapeHtml(o.value)}">${escapeHtml(o.label)}</button>`)
-      .join("");
-    container.querySelectorAll("button").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        state[key] = btn.dataset.value;
-        container.querySelectorAll("button").forEach((b) => b.classList.toggle("active", b === btn));
-        applyFilters();
-      });
+  function fillSelect(select, values) {
+    const unique = [...new Set(values.filter(Boolean))].sort();
+    unique.forEach((v) => {
+      const opt = document.createElement("option");
+      opt.value = v;
+      opt.textContent = v;
+      select.appendChild(opt);
     });
-  }
-
-  function fillFilters() {
-    const categories = [...new Set(allListings.map((i) => i.category).filter(Boolean))].sort();
-    const sizes = [...new Set(allListings.map((i) => i.size).filter(Boolean))].sort();
-
-    buildChipRow(categoryRow, [{ value: "", label: "All categories" }, ...categories.map((c) => ({ value: c, label: c }))], "category");
-    buildChipRow(tagRow, [{ value: "", label: "All tags" }, ...TAG_OPTIONS.map((t) => ({ value: t, label: t }))], "tag");
-    buildChipRow(sizeRow, [{ value: "", label: "All sizes" }, ...sizes.map((s) => ({ value: s, label: s }))], "size");
-    buildChipRow(priceRow, [{ value: "", label: "All prices" }, ...PRICE_OPTIONS], "price");
   }
 
   function renderGrid(items) {
@@ -69,12 +49,17 @@
   }
 
   function applyFilters() {
-    const filtered = allListings.filter((item) => {
-      if (state.category && item.category !== state.category) return false;
-      if (state.tag && !(item.tags || []).includes(state.tag)) return false;
-      if (state.size && item.size !== state.size) return false;
-      if (state.price) {
-        const [min, max] = state.price.split("-").map(Number);
+    const cat = filterCategory.value;
+    const tag = filterTag.value;
+    const size = filterSize.value;
+    const priceRange = filterPrice.value;
+
+    let filtered = allListings.filter((item) => {
+      if (cat && item.category !== cat) return false;
+      if (tag && !(item.tags || []).includes(tag)) return false;
+      if (size && item.size !== size) return false;
+      if (priceRange) {
+        const [min, max] = priceRange.split("-").map(Number);
         const price = Number(item.price);
         if (price < min || price > max) return false;
       }
@@ -83,6 +68,10 @@
 
     renderGrid(filtered);
   }
+
+  [filterCategory, filterTag, filterSize, filterPrice].forEach((el) => {
+    el.addEventListener("change", applyFilters);
+  });
 
   async function load() {
     const { data, error } = await supabaseClient
@@ -105,7 +94,10 @@
     }
 
     filterBar.style.display = "flex";
-    fillFilters();
+    fillSelect(filterCategory, allListings.map((i) => i.category));
+    fillSelect(filterTag, TAG_OPTIONS);
+    fillSelect(filterSize, allListings.map((i) => i.size));
+
     renderGrid(allListings);
   }
 
