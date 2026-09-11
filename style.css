@@ -30,7 +30,7 @@ h1 {
   margin: 0 0 4px;
 }
 
-/* Only the full-screen story feed locks scrolling on the page itself â€”
+/* Only the full-screen story feed locks scrolling on the page itself —
    it manages its own fixed viewport. Form pages (submit/admin) scroll normally. */
 body.lock-scroll {
   height: 100%;
