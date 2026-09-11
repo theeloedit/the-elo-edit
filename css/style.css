@@ -377,23 +377,22 @@ button {
 
 .filter-bar {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 16px;
-}
-
-.chip-row {
-  display: flex;
   gap: 8px;
   overflow-x: auto;
-  padding-bottom: 2px;
+  padding-bottom: 4px;
+  margin-bottom: 16px;
   -webkit-overflow-scrolling: touch;
 }
 
-.chip-row .tag-chip {
+.filter-bar select {
   flex: 0 0 auto;
-  white-space: nowrap;
+  padding: 8px 12px;
+  border: 1px solid var(--line);
+  border-radius: 20px;
   background: #fff;
+  font-size: 0.78rem;
+  color: var(--ink);
+  font-family: inherit;
 }
 
 .shop-grid {
