@@ -53,14 +53,19 @@
       <button type="button" class="submit-btn secondary" id="savePriceBtn">Update price</button>
       <div class="status-msg" id="priceStatusMsg"></div>
 
-      <button type="button" class="submit-btn" id="confirmBtn" style="margin-top:24px;">Yes, mark this sold</button>
+      <div class="field" style="margin-top:24px;">
+        <label>Mark this sold</label>
+        <p class="hint">Let us know where it sold so we can keep our records straight.</p>
+        <button type="button" class="submit-btn" id="soldEloBtn">Sold on The Elo Edit</button>
+        <button type="button" class="submit-btn secondary" id="soldElsewhereBtn" style="margin-top:8px;">Sold elsewhere</button>
+      </div>
       <div class="status-msg" id="statusMsg"></div>
     `;
 
-    document.getElementById("confirmBtn").addEventListener("click", markSold);
+    document.getElementById("soldEloBtn").addEventListener("click", () => markSold("elo_edit"));
+    document.getElementById("soldElsewhereBtn").addEventListener("click", () => markSold("elsewhere"));
     document.getElementById("savePriceBtn").addEventListener("click", updatePrice);
   }
-
   async function updatePrice() {
     const btn = document.getElementById("savePriceBtn");
     const statusMsg = document.getElementById("priceStatusMsg");
@@ -93,23 +98,30 @@
     statusMsg.className = "status-msg show success";
   }
 
-  async function markSold() {
-    const btn = document.getElementById("confirmBtn");
+  async function markSold(channel) {
+    const eloBtn = document.getElementById("soldEloBtn");
+    const elsewhereBtn = document.getElementById("soldElsewhereBtn");
     const statusMsg = document.getElementById("statusMsg");
-    btn.disabled = true;
-    btn.textContent = "Marking sold…";
+    const clickedBtn = channel === "elo_edit" ? eloBtn : elsewhereBtn;
+    const originalText = clickedBtn.textContent;
 
-    const { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id });
+    eloBtn.disabled = true;
+    elsewhereBtn.disabled = true;
+    clickedBtn.textContent = "Marking sold…";
+
+    const { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id, p_channel: channel });
 
     if (error) {
       statusMsg.textContent = error.message;
       statusMsg.className = "status-msg show error";
-      btn.disabled = false;
-      btn.textContent = "Yes, mark this sold";
+      eloBtn.disabled = false;
+      elsewhereBtn.disabled = false;
+      clickedBtn.textContent = originalText;
       return;
     }
 
-    btn.style.display = "none";
+    eloBtn.style.display = "none";
+    elsewhereBtn.style.display = "none";
     const savePriceBtn = document.getElementById("savePriceBtn");
     if (savePriceBtn) savePriceBtn.style.display = "none";
     statusMsg.textContent = "Marked as sold — it's off the site. Thanks for selling with The Elo Edit!";
