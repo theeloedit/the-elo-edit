@@ -109,7 +109,14 @@
     elsewhereBtn.disabled = true;
     clickedBtn.textContent = "Marking sold…";
 
-    const { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id, p_channel: channel });
+    let { error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id, p_channel: channel });
+
+    // Fall back to the single-argument version if the two-argument
+    // function isn't available yet — still marks it sold, just
+    // without recording which channel it sold through.
+    if (error && (error.code === "PGRST202" || error.code === "PGRST203")) {
+      ({ error } = await supabaseClient.rpc("mark_listing_sold", { listing_id: id }));
+    }
 
     if (error) {
       statusMsg.textContent = error.message;
