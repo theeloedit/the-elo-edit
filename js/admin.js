@@ -166,6 +166,20 @@
         });
       }
 
+      const copyLinkBtn = card.querySelector("[data-copy-link]");
+      if (copyLinkBtn) {
+        copyLinkBtn.addEventListener("click", async () => {
+          try {
+            await navigator.clipboard.writeText(soldLink(item));
+            const original = copyLinkBtn.textContent;
+            copyLinkBtn.textContent = "Copied!";
+            setTimeout(() => { copyLinkBtn.textContent = original; }, 1500);
+          } catch (e) {
+            alert(soldLink(item));
+          }
+        });
+      }
+
       const dmToggleBtn = card.querySelector("[data-dm-toggle]");
       if (dmToggleBtn) {
         dmToggleBtn.addEventListener("click", () => toggleDmSent(item.id));
@@ -221,6 +235,14 @@
     if (aHas) return -1;
     if (bHas) return 1;
     return new Date(b.created_at) - new Date(a.created_at);
+  }
+
+  // Newly-approved items should rank above everything else already live.
+  function nextTopSortOrder() {
+    const liveOrders = allListings
+      .filter((l) => l.status === "live" && l.sort_order != null)
+      .map((l) => l.sort_order);
+    return liveOrders.length ? Math.min(...liveOrders) - 1 : 1;
   }
 
   async function moveItem(id, direction) {
@@ -394,8 +416,11 @@
     if (item.item_name) {
       y += 10;
       ctx.font = "italic 500 54px 'Jost', Georgia, serif";
-      ctx.fillText(item.item_name, padX, y);
-      y += 90;
+      wrapText(ctx, item.item_name, textColW).slice(0, 2).forEach((line) => {
+        ctx.fillText(line, padX, y);
+        y += 66;
+      });
+      y += 24;
     } else {
       y += 20;
     }
@@ -431,7 +456,11 @@
     y += 70;
 
     ctx.font = "500 48px 'Jost', Arial, sans-serif";
-    ctx.fillText(item.seller_ig_handle ? `Seller: @${item.seller_ig_handle}` : "Seller:", padX, y);
+    const sellerLine = item.seller_ig_handle ? `Seller: @${item.seller_ig_handle}` : "Seller:";
+    wrapText(ctx, sellerLine, textColW).forEach((line) => {
+      ctx.fillText(line, padX, y);
+      y += 58;
+    });
 
     const dataUrl = canvas.toDataURL("image/png");
     const safeName = (item.brand || "item").toLowerCase().replace(/[^a-z0-9]+/g, "-");
@@ -753,6 +782,11 @@
     return `<button type="button" class="chip-btn" data-copy-dm="1">Copy DM message</button>`;
   }
 
+  function copyLinkHtml(item) {
+    if (item.status !== "live") return "";
+    return `<button type="button" class="chip-btn" data-copy-link="1">Copy link</button>`;
+  }
+
   function dmToggleHtml(item) {
     if (item.status !== "live") return "";
     return `<button type="button" class="tag-chip dm-toggle ${item.dm_sent ? "active" : ""}" data-dm-toggle="1">${item.dm_sent ? "✓ DM'ed" : "Mark as DM'ed"}</button>`;
@@ -817,7 +851,7 @@
           ${liveStatusBadgeHtml(item)}
           ${moveControlsHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}${copyDmHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
+          <div class="actions">${actions}${copyDmHtml(item)}${copyLinkHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
           ${editBlockHtml(item)}
         </div>
       </div>`;
@@ -844,9 +878,10 @@
   }
 
   async function approveWithSchedule(id, goLiveAtISO) {
+    const sort_order = nextTopSortOrder();
     const { error } = await supabaseClient
       .from("listings")
-      .update({ status: "live", go_live_at: goLiveAtISO })
+      .update({ status: "live", go_live_at: goLiveAtISO, sort_order })
       .eq("id", id);
 
     if (error) {
@@ -858,6 +893,7 @@
     if (item) {
       item.status = "live";
       item.go_live_at = goLiveAtISO;
+      item.sort_order = sort_order;
     }
     renderList();
   }
@@ -904,9 +940,14 @@
   }
 
   async function handleAction(id, newStatus) {
+    const updatePayload = { status: newStatus };
+    if (newStatus === "live") {
+      updatePayload.sort_order = nextTopSortOrder();
+    }
+
     const { error } = await supabaseClient
       .from("listings")
-      .update({ status: newStatus })
+      .update(updatePayload)
       .eq("id", id);
 
     if (error) {
@@ -915,7 +956,10 @@
     }
 
     const item = allListings.find((l) => l.id === id);
-    if (item) item.status = newStatus;
+    if (item) {
+      item.status = newStatus;
+      if (newStatus === "live") item.sort_order = updatePayload.sort_order;
+    }
     renderList();
   }
 
