@@ -689,7 +689,7 @@ button {
   margin-top: 8px;
 }
 
-.tab-btn {
+.card-top{display:flex;align-items:center;gap:8px;margin-bottom:10px}.drag-handle{cursor:grab;color:var(--muted);font-size:15px;line-height:1;padding:2px 4px;user-select:none}.drag-handle:active{cursor:grabbing}.select-box{width:16px;height:16px;accent-color:var(--ink);flex-shrink:0}.card-top .spacer{flex:1}.admin-card.dragging{opacity:0.5}.action-clusters{display:flex;flex-wrap:wrap;align-items:flex-end;gap:16px;margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}.cluster{display:flex;flex-direction:column;gap:6px}.cluster-label{font-size:0.62rem;text-transform:uppercase;letter-spacing:0.06em;color:var(--muted);font-weight:600}.cluster-btns{display:flex;gap:6px;flex-wrap:wrap}.cluster-divider{width:1px;height:34px;background:var(--line)}.edit-link{margin-left:auto;font-size:0.76rem;font-weight:600;color:var(--accent);background:none;border:none;cursor:pointer;padding:6px 2px}.bulk-toolbar{display:none;align-items:center;justify-content:space-between;background:var(--ink);color:#fff;border-radius:12px;padding:10px 14px;margin-bottom:14px;font-size:0.8rem;position:sticky;top:0;z-index:5}.bulk-toolbar .tb-actions{display:flex;gap:8px}.bulk-toolbar .tb-btn{background:#fff;color:var(--ink);border:none;border-radius:20px;padding:6px 12px;font-size:0.75rem;font-weight:600;cursor:pointer}.bulk-toolbar .tb-btn.ghost{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.35)}.tab-btn {
   background: none;
   padding: 10px 4px;
   font-size: 0.9rem;
