@@ -10,7 +10,7 @@
 
   let activeTab = "pending";
   let dmFilter = "all";
-  let allListings = [];
+  let allListings = []; let selectedIds = new Set();
   const TAG_OPTIONS = ["Bridal", "Wedding Guest", "Vacation", "Accessories", "Ready to Wear", "Shoes"];
 
   function escapeHtml(str) {
@@ -67,7 +67,7 @@
     });
   });
 
-  function showDashboard() {
+  const bulkToolbar = document.getElementById("bulkToolbar"); const bulkCount = document.getElementById("bulkCount"); const bulkExportStoryBtn = document.getElementById("bulkExportStoryBtn"); const bulkExportPostBtn = document.getElementById("bulkExportPostBtn"); const bulkClearBtn = document.getElementById("bulkClearBtn"); function updateBulkToolbar() { if (bulkToolbar) { bulkToolbar.style.display = selectedIds.size > 0 ? "flex" : "none"; } if (bulkCount) { bulkCount.textContent = selectedIds.size + " selected"; } } async function persistLiveOrder(orderedIds) { for (let i = 0; i < orderedIds.length; i++) { const newOrder = i + 1; const it = allListings.find((l) => l.id === orderedIds[i]); if (it && it.sort_order !== newOrder) { it.sort_order = newOrder; const { error } = await supabaseClient.from("listings").update({ sort_order: newOrder }).eq("id", orderedIds[i]); if (error) { alert("Couldn't save the new order: " + error.message); return; } } } } async function bulkExport(formatKey) { const ids = Array.from(selectedIds); if (!ids.length) return; const btn = formatKey === "story" ? bulkExportStoryBtn : bulkExportPostBtn; const original = btn.textContent; btn.disabled = true; for (let i = 0; i < ids.length; i++) { const it = allListings.find((l) => l.id === ids[i]); if (!it) continue; btn.textContent = "Building " + (i + 1) + "/" + ids.length + "..."; try { await generateExportImage(it, formatKey); } catch (e) { alert("Couldn't export " + (it.brand || "an item") + ". " + (e && e.message ? e.message : "")); } } btn.disabled = false; btn.textContent = original; } if (bulkExportStoryBtn) { bulkExportStoryBtn.addEventListener("click", () => bulkExport("story")); } if (bulkExportPostBtn) { bulkExportPostBtn.addEventListener("click", () => bulkExport("post")); } if (bulkClearBtn) { bulkClearBtn.addEventListener("click", () => { selectedIds.clear(); updateBulkToolbar(); renderList(); }); } listEl.addEventListener("dragstart", (e) => { const handle = e.target.closest(".drag-handle"); if (!handle) return; const cardEl = handle.closest(".admin-card"); if (!cardEl) return; e.dataTransfer.setData("text/plain", cardEl.dataset.id); e.dataTransfer.effectAllowed = "move"; cardEl.classList.add("dragging"); }); listEl.addEventListener("dragend", (e) => { const cardEl = e.target.closest(".admin-card"); if (cardEl) cardEl.classList.remove("dragging"); }); listEl.addEventListener("dragover", (e) => { const cardEl = e.target.closest(".admin-card"); if (!cardEl || !cardEl.querySelector(".drag-handle")) return; e.preventDefault(); e.dataTransfer.dropEffect = "move"; const draggingEl = listEl.querySelector(".admin-card.dragging"); if (!draggingEl || draggingEl === cardEl) return; const rect = cardEl.getBoundingClientRect(); const before = (e.clientY - rect.top) < rect.height / 2; cardEl.parentNode.insertBefore(draggingEl, before ? cardEl : cardEl.nextSibling); }); listEl.addEventListener("drop", async (e) => { const cardEl = e.target.closest(".admin-card"); if (!cardEl || !cardEl.querySelector(".drag-handle")) return; e.preventDefault(); const orderedIds = Array.from(listEl.querySelectorAll(".admin-card")).filter((c) => c.querySelector(".drag-handle")).map((c) => c.dataset.id); await persistLiveOrder(orderedIds); }); function showDashboard() {
     loginView.style.display = "none";
     dashboardView.style.display = "block";
     loadListings();
@@ -98,7 +98,7 @@
       }
     }
 
-    const dmFilterHtml = activeTab === "live" ? `
+    const visibleIds = new Set(items.map((l) => l.id)); let selChanged = false; selectedIds.forEach((id) => { if (!visibleIds.has(id)) { selectedIds.delete(id); selChanged = true; } }); if (selChanged) updateBulkToolbar(); const dmFilterHtml = activeTab === "live" ? `
       <div class="dm-filter-bar">
         <button type="button" class="filter-chip ${dmFilter === "all" ? "active" : ""}" data-dm-filter="all">All</button>
         <button type="button" class="filter-chip ${dmFilter === "dmed" ? "active" : ""}" data-dm-filter="dmed">DM'ed</button>
@@ -126,7 +126,7 @@
         btn.addEventListener("click", () => handleAction(item.id, btn.dataset.action));
       });
 
-      card.querySelectorAll("[data-tag]").forEach((btn) => {
+      const selectBox = card.querySelector("[data-select]"); if (selectBox) { selectBox.checked = selectedIds.has(item.id); selectBox.addEventListener("change", () => { if (selectBox.checked) { selectedIds.add(item.id); } else { selectedIds.delete(item.id); } updateBulkToolbar(); }); } card.querySelectorAll("[data-tag]").forEach((btn) => {
         btn.addEventListener("click", () => toggleTag(item.id, btn.dataset.tag));
       });
 
@@ -899,29 +899,7 @@
     return `<button type="button" class="chip-btn" data-post="1">Download IG post</button>`;
   }
 
-  function cardHtml(item) {
-    const isPending = item.status === "pending";
-    const actions = actionButtons(item);
-    return `
-      <div class="admin-card" data-id="${item.id}">
-        <div class="admin-photos" id="admin-photos-${item.id}"></div>
-        <div class="details">
-          <h3>${escapeHtml(item.brand)} ${item.item_name ? "— " + escapeHtml(item.item_name) : ""}</h3>
-          <p>Size ${escapeHtml(item.size || "—")} · $${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid $${Number(item.original_price).toFixed(0)})</span>` : ""}</p>
-          <p>@${escapeHtml(item.seller_ig_handle)}</p>
-          <p>${escapeHtml(item.condition || "")} ${item.category ? "· " + escapeHtml(item.category) : ""}</p>
-          ${item.status === "sold" && item.sold_via ? `<p>Sold via ${item.sold_via === "elo_edit" ? "The Elo Edit" : "elsewhere"}</p>` : ""}
-          ${tagChipsHtml(item)}
-          ${liveStatusBadgeHtml(item)}
-          ${moveControlsHtml(item)}
-          ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}${copyDmHtml(item)}${copyLinkHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}${postBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
-          ${editBlockHtml(item)}
-        </div>
-      </div>`;
-  }
-
-  function actionButtons(item) {
+  function cardHtml(item) { const isPending = item.status === "pending"; const isLive = item.status === "live"; const actions = actionButtons(item); const canDrag = isLive && dmFilter === "all"; const canSelect = isPending || isLive; const showCardTop = canDrag || canSelect || isLive; return `<div class="admin-card" data-id="${item.id}">${showCardTop ? `<div class="card-top">${canDrag ? `<span class="drag-handle" title="Drag to reorder">&#8942;&#8942;</span>` : ""}${canSelect ? `<input type="checkbox" class="select-box" data-select="1" aria-label="Select for bulk export" />` : ""}<span class="spacer"></span>${liveStatusBadgeHtml(item)}</div>` : ""}<div class="admin-photos" id="admin-photos-${item.id}"></div><div class="details"><h3>${escapeHtml(item.brand)} ${item.item_name ? "- " + escapeHtml(item.item_name) : ""}</h3><p>Size ${escapeHtml(item.size || "-")} - ${Number(item.price).toFixed(0)}${item.original_price ? ` <span style="opacity:.6">(paid ${Number(item.original_price).toFixed(0)})</span>` : ""}</p><p>@${escapeHtml(item.seller_ig_handle)}</p><p>${escapeHtml(item.condition || "")} ${item.category ? "- " + escapeHtml(item.category) : ""}</p>${item.status === "sold" && item.sold_via ? `<p>Sold via ${item.sold_via === "elo_edit" ? "The Elo Edit" : "elsewhere"}</p>` : ""}${tagChipsHtml(item)}${isPending ? scheduleControlsHtml(item) : ""}<div class="action-clusters"><div class="cluster"><span class="cluster-label">Status</span><div class="cluster-btns">${actions}</div></div>${isLive ? `<div class="cluster-divider"></div><div class="cluster"><span class="cluster-label">Share</span><div class="cluster-btns">${copyDmHtml(item)}${copyLinkHtml(item)}${dmToggleHtml(item)}</div></div>` : ""}<button type="button" class="edit-link" data-edit-toggle="1">Edit &rarr;</button></div>${editBlockHtml(item)}</div></div>`; } function actionButtons(item) {
     if (item.status === "pending") {
       return `
         <button class="chip-btn approve" data-approve="1">Approve for this date</button>
