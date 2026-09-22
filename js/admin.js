@@ -408,11 +408,11 @@
 
     try {
       await Promise.all([
-        document.fonts.load("800 92px 'Playfair Display'"),
-        document.fonts.load("italic 500 54px 'Jost'"),
-        document.fonts.load("500 48px 'Jost'"),
-        document.fonts.load("600 48px 'Jost'"),
-        document.fonts.load("400 40px 'Jost'"),
+        document.fonts.load("700 92px 'Cormorant Garamond'"),
+        document.fonts.load("italic 500 54px 'Poppins'"),
+        document.fonts.load("500 48px 'Poppins'"),
+        document.fonts.load("600 48px 'Poppins'"),
+        document.fonts.load("400 40px 'Poppins'"),
       ]);
       await document.fonts.ready;
     } catch (e) {
@@ -458,7 +458,7 @@
 
     let y = cfg.startY;
 
-    ctx.font = "800 92px 'Playfair Display', Georgia, serif";
+    ctx.font = "700 92px 'Cormorant Garamond', Georgia, serif";
     wrapText(ctx, item.brand || "", textColW).forEach((line) => {
       ctx.fillText(line, padX, y);
       y += 105;
@@ -466,7 +466,7 @@
 
     if (item.item_name) {
       y += 10;
-      ctx.font = "italic 500 54px 'Jost', Georgia, serif";
+      ctx.font = "italic 500 54px 'Poppins', Georgia, serif";
       wrapText(ctx, item.item_name, textColW).slice(0, 2).forEach((line) => {
         ctx.fillText(line, padX, y);
         y += 66;
@@ -476,7 +476,7 @@
       y += 20;
     }
 
-    ctx.font = "500 48px 'Jost', Arial, sans-serif";
+    ctx.font = "500 48px 'Poppins', Arial, sans-serif";
     ctx.fillText(`Size: ${item.size || "--"}`, padX, y);
     y += 72;
     ctx.fillText(`Price: $${Number(item.price).toFixed(0)}`, padX, y);
@@ -492,10 +492,10 @@
 
     const noteText = item.description || item.condition || "";
     if (noteText) {
-      ctx.font = "600 48px 'Jost', Arial, sans-serif";
+      ctx.font = "600 48px 'Poppins', Arial, sans-serif";
       ctx.fillText("Notes:", padX, y);
       y += 60;
-      ctx.font = "400 40px 'Jost', Arial, sans-serif";
+      ctx.font = "400 40px 'Poppins', Arial, sans-serif";
       wrapText(ctx, noteText, textColW).slice(0, 3).forEach((line) => {
         ctx.fillText(line, padX, y);
         y += 52;
@@ -506,7 +506,7 @@
     drawDottedLine(ctx, padX, y, padX + textColW, y, RUST);
     y += 70;
 
-    ctx.font = "500 48px 'Jost', Arial, sans-serif";
+    ctx.font = "500 48px 'Poppins', Arial, sans-serif";
     const sellerLine = item.seller_ig_handle ? `Seller: @${item.seller_ig_handle}` : "Seller:";
     wrapText(ctx, sellerLine, textColW).forEach((line) => {
       ctx.fillText(line, padX, y);
