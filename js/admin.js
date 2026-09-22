@@ -194,7 +194,7 @@
         storyBtn.addEventListener("click", async () => {
           const original = storyBtn.textContent;
           storyBtn.disabled = true;
-          storyBtn.textContent = "Building…";
+          storyBtn.textContent = "Building...";
           try {
             await generateStoryImage(item);
           } catch (e) {
@@ -202,6 +202,23 @@
           } finally {
             storyBtn.disabled = false;
             storyBtn.textContent = original;
+          }
+        });
+      }
+
+      const postBtn = card.querySelector("[data-post]");
+      if (postBtn) {
+        postBtn.addEventListener("click", async () => {
+          const original = postBtn.textContent;
+          postBtn.disabled = true;
+          postBtn.textContent = "Building...";
+          try {
+            await generatePostImage(item);
+          } catch (e) {
+            alert("Couldn't generate the post image. " + (e && e.message ? e.message : ""));
+          } finally {
+            postBtn.disabled = false;
+            postBtn.textContent = original;
           }
         });
       }
@@ -327,24 +344,55 @@
     ctx.restore();
   }
 
-  function drawCircleMark(ctx, cx, cy, radius, label, font, color) {
-    ctx.save();
-    ctx.fillStyle = color;
-    ctx.font = font;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    for (let i = 0; i < 4; i++) {
-      ctx.save();
-      ctx.translate(cx, cy);
-      ctx.rotate((i * Math.PI) / 2);
-      ctx.fillText(label, 0, -radius);
-      ctx.restore();
+  function loadLogoImage() {
+    if (!window.__eloLogoImg) {
+      window.__eloLogoImg = loadImageEl("/favicon-512x512.png");
     }
-    ctx.restore();
+    return window.__eloLogoImg;
   }
 
-  async function generateStoryImage(item) {
-    const W = 1080, H = 1920;
+  function drawLogo(ctx, logoImg, cx, cy, diameter) {
+    ctx.drawImage(logoImg, 29, 29, 453, 453, cx - diameter / 2, cy - diameter / 2, diameter, diameter);
+  }
+
+  const EXPORT_FORMATS = {
+    story: {
+      W: 1080,
+      H: 1920,
+      logoCx: 540,
+      logoCy: 105,
+      logoD: 133,
+      photoColX: 653,
+      photoColW: 362,
+      photoTop: 277,
+      photoBottom: 1783,
+      gap: 56,
+      padX: 70,
+      textColW: 560,
+      startY: 400,
+      filePrefix: "elo-story",
+    },
+    post: {
+      W: 1200,
+      H: 1500,
+      logoCx: 620,
+      logoCy: 134,
+      logoD: 140,
+      photoColX: 810,
+      photoColW: 331,
+      photoTop: 60,
+      photoBottom: 1440,
+      gap: 40,
+      padX: 140,
+      textColW: 550,
+      startY: 340,
+      filePrefix: "elo-post",
+    },
+  };
+
+  async function generateExportImage(item, formatKey) {
+    const cfg = EXPORT_FORMATS[formatKey];
+    const W = cfg.W, H = cfg.H;
     const canvas = document.createElement("canvas");
     canvas.width = W;
     canvas.height = H;
@@ -352,7 +400,6 @@
 
     const BG = "#fdfaf5";
     const INK = "#141414";
-    const LOGO_GRAY = "#595959";
     const RUST = "#6f4b25";
     const PLACEHOLDER = "#d8cba9";
 
@@ -362,7 +409,6 @@
     try {
       await Promise.all([
         document.fonts.load("800 92px 'Playfair Display'"),
-        document.fonts.load("700 30px 'Jost'"),
         document.fonts.load("italic 500 54px 'Jost'"),
         document.fonts.load("500 48px 'Jost'"),
         document.fonts.load("600 48px 'Jost'"),
@@ -370,17 +416,22 @@
       ]);
       await document.fonts.ready;
     } catch (e) {
-      // fonts best-effort — canvas falls back to system fonts if unavailable
+      // fonts best-effort - canvas falls back to system fonts if unavailable
     }
 
-    drawCircleMark(ctx, W / 2, 104, 52, "ELO", "700 30px 'Jost', Arial, sans-serif", LOGO_GRAY);
+    try {
+      const logoImg = await loadLogoImage();
+      drawLogo(ctx, logoImg, cfg.logoCx, cfg.logoCy, cfg.logoD);
+    } catch (e) {
+      // logo best-effort - skip if it fails to load
+    }
 
     const photos = (item.photo_urls || []).slice(0, 3);
-    const photoColX = 650;
-    const photoColW = 360;
-    const photoTop = 280;
-    const photoBottom = 1840;
-    const gap = 20;
+    const photoColX = cfg.photoColX;
+    const photoColW = cfg.photoColW;
+    const photoTop = cfg.photoTop;
+    const photoBottom = cfg.photoBottom;
+    const gap = cfg.gap;
     const count = Math.max(photos.length, 1);
     const eachH = (photoBottom - photoTop - gap * (count - 1)) / count;
 
@@ -400,12 +451,12 @@
       }
     }
 
-    const padX = 70;
-    const textColW = 560;
+    const padX = cfg.padX;
+    const textColW = cfg.textColW;
     ctx.textAlign = "left";
     ctx.fillStyle = INK;
 
-    let y = 400;
+    let y = cfg.startY;
 
     ctx.font = "800 92px 'Playfair Display', Georgia, serif";
     wrapText(ctx, item.brand || "", textColW).forEach((line) => {
@@ -426,7 +477,7 @@
     }
 
     ctx.font = "500 48px 'Jost', Arial, sans-serif";
-    ctx.fillText(`Size: ${item.size || "—"}`, padX, y);
+    ctx.fillText(`Size: ${item.size || "--"}`, padX, y);
     y += 72;
     ctx.fillText(`Price: $${Number(item.price).toFixed(0)}`, padX, y);
     y += 72;
@@ -466,10 +517,18 @@
     const safeName = (item.brand || "item").toLowerCase().replace(/[^a-z0-9]+/g, "-");
     const link = document.createElement("a");
     link.href = dataUrl;
-    link.download = `elo-story-${safeName}-${item.id.slice(0, 8)}.png`;
+    link.download = `${cfg.filePrefix}-${safeName}-${item.id.slice(0, 8)}.png`;
     document.body.appendChild(link);
     link.click();
     link.remove();
+  }
+
+  function generateStoryImage(item) {
+    return generateExportImage(item, "story");
+  }
+
+  function generatePostImage(item) {
+    return generateExportImage(item, "post");
   }
 
   // ---------- edit listing details ----------
@@ -835,6 +894,11 @@
     return `<button type="button" class="chip-btn" data-story="1">Download IG story</button>`;
   }
 
+  function postBtnHtml(item) {
+    if (item.status !== "pending" && item.status !== "live") return "";
+    return `<button type="button" class="chip-btn" data-post="1">Download IG post</button>`;
+  }
+
   function cardHtml(item) {
     const isPending = item.status === "pending";
     const actions = actionButtons(item);
@@ -851,7 +915,7 @@
           ${liveStatusBadgeHtml(item)}
           ${moveControlsHtml(item)}
           ${isPending ? scheduleControlsHtml(item) : ""}
-          <div class="actions">${actions}${copyDmHtml(item)}${copyLinkHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
+          <div class="actions">${actions}${copyDmHtml(item)}${copyLinkHtml(item)}${dmToggleHtml(item)}${storyBtnHtml(item)}${postBtnHtml(item)}<button type="button" class="chip-btn" data-edit-toggle="1">Edit details</button></div>
           ${editBlockHtml(item)}
         </div>
       </div>`;
